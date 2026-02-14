@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Stats Dashboard</title>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a2e;
+            color: #e0e0e0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 30px 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 24px;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4ecdc4;
+            letter-spacing: -0.5px;
+        }
+
+        header .subtitle {
+            color: #888;
+            font-size: 0.95rem;
+            margin-top: 6px;
+        }
+
+        /* Stats Cards */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(78, 205, 196, 0.3);
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #4ecdc4;
+            line-height: 1.2;
+        }
+
+        .stat-card .label {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .detail {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        /* Map Section */
+        .map-section {
+            background: #16213e;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 16px 20px 0;
+            color: #e0e0e0;
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .chart-card {
+            background: #16213e;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 16px;
+            overflow: hidden;
+        }
+
+        /* Full-width sections */
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .chart-card .plotly-graph-div {
+            width: 100% !important;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 1.5rem;
+            }
+
+            .stat-card .value {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 24px;
+            color: #555;
+            font-size: 0.8rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            margin-top: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Travel Stats Dashboard</h1>
+            <p class="subtitle">{{ stats.date_range }} &mdash; {{ stats.total_photos }} geotagged photos</p>
+        </header>
+
+        <!-- Summary Stats -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="value">{{ stats.total_countries }}</div>
+                <div class="label">Countries</div>
+            </div>
+            <div class="stat-card">
+                <div class="value">{{ stats.total_cities }}</div>
+                <div class="label">Cities</div>
+            </div>
+            <div class="stat-card">
+                <div class="value">{{ stats.total_photos }}</div>
+                <div class="label">Photos</div>
+            </div>
+            <div class="stat-card">
+                <div class="value">{{ stats.top_country }}</div>
+                <div class="label">Top Country</div>
+                <div class="detail">{{ stats.top_country_count }} photos</div>
+            </div>
+            <div class="stat-card">
+                <div class="value">{{ stats.busiest_month }}</div>
+                <div class="label">Busiest Month</div>
+                <div class="detail">{{ stats.busiest_month_count }} photos</div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="map-section">
+            <div class="section-title">Photo Locations</div>
+            {{ map_div | safe }}
+        </div>
+
+        <!-- Timeline (full width) -->
+        <div class="charts-grid">
+            <div class="chart-card full-width">
+                {{ timeline_chart | safe }}
+            </div>
+
+            <!-- Bar Charts -->
+            <div class="chart-card">
+                {{ countries_chart | safe }}
+            </div>
+            <div class="chart-card">
+                {{ cities_chart | safe }}
+            </div>
+
+            <!-- Yearly Breakdown (full width) -->
+            <div class="chart-card full-width">
+                {{ yearly_chart | safe }}
+            </div>
+        </div>
+
+        <footer>
+            Generated from macOS Photos Library
+        </footer>
+    </div>
+</body>
+</html>
