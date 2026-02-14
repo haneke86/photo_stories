@@ -56,7 +56,7 @@ def _resolve_uid(objects: list, val) -> Optional[str]:
     return None
 
 
-def _parse_reverse_location(blob) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+def _parse_reverse_location(blob) -> Tuple[Optional[str], Optional[str], Optional[str], Optional[str], Optional[str]]:
     """
     Parse a binary plist blob from ZREVERSELOCATIONDATA.
 
@@ -64,21 +64,24 @@ def _parse_reverse_location(blob) -> Tuple[Optional[str], Optional[str], Optiona
     plist. The $objects array contains a postalAddress dict with explicit keys
     (_country, _city, _state, etc.) whose values are UID references into the
     same $objects array.
+
+    Returns (country, city, state, sub_admin, sub_locality) — all raw Apple
+    values. City normalization happens separately in _normalize_city().
     """
     if blob is None:
-        return None, None, None
+        return None, None, None, None, None
 
     try:
         plist = plistlib.loads(blob)
     except Exception:
-        return None, None, None
+        return None, None, None, None, None
 
     if not isinstance(plist, dict):
-        return None, None, None
+        return None, None, None, None, None
 
     objects = plist.get("$objects")
     if not objects or not isinstance(objects, list):
-        return None, None, None
+        return None, None, None, None, None
 
     # Primary: find the postalAddress dict (has _country, _city keys)
     for obj in objects:
@@ -86,15 +89,29 @@ def _parse_reverse_location(blob) -> Tuple[Optional[str], Optional[str], Optiona
             country = _resolve_uid(objects, obj.get("_country"))
             city = _resolve_uid(objects, obj.get("_city"))
             state = _resolve_uid(objects, obj.get("_state"))
-            # Fall back to subLocality if city is empty (e.g. rural areas)
-            if not city:
-                city = _resolve_uid(objects, obj.get("_subLocality"))
-            # Fall back to subAdministrativeArea if still empty
-            if not city:
-                city = _resolve_uid(objects, obj.get("_subAdministrativeArea"))
-            return country, city, state
+            sub_admin = _resolve_uid(objects, obj.get("_subAdministrativeArea"))
+            sub_locality = _resolve_uid(objects, obj.get("_subLocality"))
+            return country, city, state, sub_admin, sub_locality
 
-    return None, None, None
+    return None, None, None, None, None
+
+
+def _normalize_city(country, city, state, sub_admin):
+    """
+    Normalize city to metro level.
+
+    Apple's _city is district-level for big metros:
+    - Turkey: _city=Beşiktaş, _state=Istanbul → use state
+    - UK/Greece: _city=Hounslow, _subAdmin=London → use subAdmin
+    - US/Italy/others: _city is already correct (New York, Florence)
+    """
+    if country == "Türkiye" and state:
+        # Turkish _state = province/metro (Istanbul, Ankara, Muğla, İzmir)
+        return state
+    if country in ("United Kingdom", "Greece") and sub_admin:
+        return sub_admin
+    # Default: use city as-is, fall back to sub_admin, then state
+    return city or sub_admin or state or "Unknown"
 
 
 def _compute_cutoff_cocoa():
@@ -117,7 +134,7 @@ def extract_photo_data(db_path=None, debug_plists=False):
     Returns:
         pd.DataFrame with columns:
             latitude, longitude, date, year, month, filename,
-            country, city, state
+            country, city, district, state
     """
     if db_path is None:
         db_path = DEFAULT_DB_PATH
@@ -165,7 +182,7 @@ def extract_photo_data(db_path=None, debug_plists=False):
         return pd.DataFrame(
             columns=[
                 "latitude", "longitude", "date", "year", "month",
-                "filename", "country", "city", "state",
+                "filename", "country", "city", "district", "state",
             ]
         )
 
@@ -190,7 +207,9 @@ def extract_photo_data(db_path=None, debug_plists=False):
         pk, lat, lon, cocoa_ts, filename, rev_blob = row
 
         dt = _cocoa_to_datetime(cocoa_ts)
-        country, city, state = _parse_reverse_location(rev_blob)
+        country, raw_city, state, sub_admin, sub_locality = _parse_reverse_location(rev_blob)
+        metro_city = _normalize_city(country, raw_city, state, sub_admin) if country else None
+        district = raw_city or sub_locality or sub_admin or ""
 
         records.append(
             {
@@ -201,7 +220,8 @@ def extract_photo_data(db_path=None, debug_plists=False):
                 "month": dt.strftime("%Y-%m") if dt else None,
                 "filename": filename or f"photo_{pk}",
                 "country": country,
-                "city": city,
+                "city": metro_city,
+                "district": district,
                 "state": state or "",
             }
         )
@@ -233,6 +253,7 @@ def _fill_missing_geocoding(records, missing_indices):
             r = records[idx]
             r["country"] = r["country"] or "Unknown"
             r["city"] = r["city"] or "Unknown"
+            r.setdefault("district", "")
         return
 
     coords = [(records[i]["latitude"], records[i]["longitude"]) for i in missing_indices]
@@ -247,7 +268,8 @@ def _fill_missing_geocoding(records, missing_indices):
         admin1 = geo.get("admin1", "")
 
         records[idx]["country"] = country_name or "Unknown"
-        records[idx]["city"] = city_name or "Unknown"
+        records[idx]["city"] = admin1 or city_name or "Unknown"
+        records[idx]["district"] = city_name or ""
         if not records[idx]["state"]:
             records[idx]["state"] = admin1 or ""
 
