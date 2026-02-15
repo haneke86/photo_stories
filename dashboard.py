@@ -1,13 +1,16 @@
 """
-dashboard.py — Generate a story-focused travel timeline dashboard.
+dashboard.py — Generate a travel story dashboard with trip stamps and timeline.
 
-Receives a timeline dict (from trips.py) and renders trip cards, a trip
-map, and year summaries into an HTML file using a Jinja2 template.
+Receives a timeline dict (from trips.py) and renders:
+- Trip stamps (Airbnb-style, clickable/expandable)
+- Scrollable horizontal timeline
+- Trip map
+All assembled into a single HTML file via Jinja2.
 """
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, date
 
 import plotly.graph_objects as go
 import plotly.express as px
@@ -16,16 +19,28 @@ from jinja2 import Environment, FileSystemLoader
 # Color palette for years
 YEAR_COLORS = px.colors.qualitative.Set2
 
+# Country → emoji flag (common ones; fallback handled in template)
+COUNTRY_FLAGS = {
+    "Türkiye": "TR", "United States": "US", "United Kingdom": "GB",
+    "Netherlands": "NL", "Greece": "GR", "Italy": "IT", "France": "FR",
+    "Germany": "DE", "Belgium": "BE", "Luxembourg": "LU", "Singapore": "SG",
+    "Serbia": "RS", "Cyprus": "CY", "Malta": "MT", "Romania": "RO",
+    "Switzerland": "CH", "Liechtenstein": "LI", "Ireland": "IE",
+    "Albania": "AL", "San Marino": "SM", "Croatia": "HR",
+}
+
+
+def _cc_to_flag(cc):
+    """Convert a 2-letter country code to a flag emoji (e.g. 'TR' → '🇹🇷')."""
+    if not cc or len(cc) != 2:
+        return ""
+    return "".join(chr(0x1F1E6 + ord(c) - ord("A")) for c in cc.upper())
+
 
 def _build_trip_map(timeline):
-    """
-    Interactive map showing one marker per trip stop.
-
-    Markers are sized by duration and colored by year.
-    """
+    """Interactive map with one marker per trip stop, sized by duration."""
     fig = go.Figure()
 
-    # Collect all stops with their trip context
     year_stops = {}
     for trip in timeline["trips"]:
         year = trip["departure_date"][:4]
@@ -38,36 +53,30 @@ def _build_trip_map(timeline):
                 "city": stop["city"],
                 "country": stop["country"],
                 "days": stop["days"],
-                "photos": stop["photo_count"],
                 "date": stop["arrival_date"],
                 "trip_cities": ", ".join(trip["cities"]),
             })
 
-    years = sorted(year_stops.keys())
-    for i, year in enumerate(years):
+    for i, year in enumerate(sorted(year_stops)):
         stops = year_stops[year]
         color = YEAR_COLORS[i % len(YEAR_COLORS)]
-
-        fig.add_trace(
-            go.Scattermap(
-                lat=[s["lat"] for s in stops],
-                lon=[s["lon"] for s in stops],
-                mode="markers",
-                marker=dict(
-                    size=[max(8, min(s["days"] * 3, 30)) for s in stops],
-                    color=color,
-                    opacity=0.8,
-                ),
-                name=year,
-                text=[
-                    f"<b>{s['city']}, {s['country']}</b><br>"
-                    f"{s['date']} · {s['days']}d · {s['photos']} photos<br>"
-                    f"Trip: {s['trip_cities']}"
-                    for s in stops
-                ],
-                hoverinfo="text",
-            )
-        )
+        fig.add_trace(go.Scattermap(
+            lat=[s["lat"] for s in stops],
+            lon=[s["lon"] for s in stops],
+            mode="markers",
+            marker=dict(
+                size=[max(8, min(s["days"] * 3, 30)) for s in stops],
+                color=color, opacity=0.8,
+            ),
+            name=year,
+            text=[
+                f"<b>{s['city']}, {s['country']}</b><br>"
+                f"{s['date']} · {s['days']}d<br>"
+                f"Trip: {s['trip_cities']}"
+                for s in stops
+            ],
+            hoverinfo="text",
+        ))
 
     home = timeline["home_base"]
     fig.update_layout(
@@ -77,168 +86,181 @@ def _build_trip_map(timeline):
             zoom=2.5,
         ),
         margin=dict(l=0, r=0, t=0, b=0),
-        height=500,
+        height=450,
         legend=dict(
-            orientation="h",
-            yanchor="top",
-            y=0.99,
-            xanchor="left",
-            x=0.01,
-            bgcolor="rgba(0,0,0,0.5)",
-            font=dict(color="white"),
+            orientation="h", yanchor="top", y=0.99, xanchor="left", x=0.01,
+            bgcolor="rgba(0,0,0,0.5)", font=dict(color="white"),
         ),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
     )
-
     return fig.to_html(full_html=False, include_plotlyjs=False)
 
 
+def _format_date_short(iso_date):
+    """Format date as 'Feb 2020'."""
+    d = datetime.fromisoformat(iso_date)
+    return d.strftime("%b %Y")
+
+
 def _format_date_range(dep, ret):
-    """Format trip dates for display: 'Feb 20 – 24, 2020' or 'Feb 20 – Mar 2, 2020'."""
+    """Format trip dates: 'Feb 20 – 24' or 'Feb 20 – Mar 2'."""
     d = datetime.fromisoformat(dep)
     r = datetime.fromisoformat(ret)
-    if d.year == r.year and d.month == r.month:
-        return f"{d.strftime('%b %d')} – {r.day}, {r.year}"
-    elif d.year == r.year:
-        return f"{d.strftime('%b %d')} – {r.strftime('%b %d')}, {r.year}"
-    else:
-        return f"{d.strftime('%b %d, %Y')} – {r.strftime('%b %d, %Y')}"
+    if d.month == r.month:
+        return f"{d.strftime('%b %d')} – {r.day}"
+    return f"{d.strftime('%b %d')} – {r.strftime('%b %d')}"
 
 
-def _build_trip_cards(timeline):
-    """Build display-ready trip card data for the template."""
-    cards = []
+def _build_stamps(timeline):
+    """Build stamp data for each trip — compact Airbnb-style badges."""
+    stamps = []
     for trip in timeline["trips"]:
-        # Primary destination: first city, or multi-city label
+        # Primary label: city for single-city, country for multi-city
         if len(trip["cities"]) == 1:
-            destination = trip["cities"][0]
+            label = trip["cities"][0]
         elif len(trip["countries"]) == 1:
-            destination = " → ".join(trip["cities"][:3])
+            label = " → ".join(trip["cities"][:3])
             if len(trip["cities"]) > 3:
-                destination += f" +{len(trip['cities']) - 3}"
+                label += f" +{len(trip['cities']) - 3}"
         else:
-            destination = " → ".join(dict.fromkeys(trip["countries"]))
+            label = " → ".join(dict.fromkeys(trip["countries"]))
 
-        # Subtitle: country or multi-country
+        # Country subtitle
         if len(trip["countries"]) == 1:
-            subtitle = trip["countries"][0]
+            country = trip["countries"][0]
         else:
-            subtitle = ", ".join(trip["countries"])
+            country = ", ".join(trip["countries"])
 
-        # Stops summary
-        stops_display = []
+        # Country code for flag
+        cc = COUNTRY_FLAGS.get(trip["countries"][0], "")
+
+        # Stops detail for expanded view
+        stops = []
         for stop in trip["stops"]:
             districts = ", ".join(stop["districts"][:3]) if stop["districts"] else ""
-            stops_display.append({
+            stops.append({
                 "city": stop["city"],
                 "country": stop["country"],
                 "days": stop["days"],
                 "districts": districts,
+                "arrival": stop["arrival_date"],
             })
 
-        cards.append({
+        stamps.append({
             "id": trip["id"],
-            "destination": destination,
-            "subtitle": subtitle,
+            "label": label,
+            "country": country,
+            "cc": cc,
+            "date_display": _format_date_short(trip["departure_date"]),
             "date_range": _format_date_range(trip["departure_date"], trip["return_date"]),
             "duration": trip["duration_days"],
-            "photo_count": trip["photo_count"],
-            "stops": stops_display,
             "year": int(trip["departure_date"][:4]),
-            "countries": trip["countries"],
             "is_multi_country": len(trip["countries"]) > 1,
+            "stops": stops,
+            "departure": trip["departure_date"],
         })
 
-    return cards
+    return stamps
 
 
-def _build_year_sections(timeline, trip_cards):
-    """Group trip cards into year sections with summary stats."""
-    year_map = {}
+def _build_timeline_data(timeline):
+    """
+    Build data for the horizontal scrollable timeline.
+
+    Returns a list of year dicts, each containing trip blocks with
+    positioning info (month offset within the year).
+    """
+    years_data = []
     for year_summary in timeline["years"]:
         y = year_summary["year"]
-        year_map[y] = {
+        blocks = []
+        for trip in timeline["trips"]:
+            if int(trip["departure_date"][:4]) != y:
+                continue
+            dep = date.fromisoformat(trip["departure_date"])
+            ret = date.fromisoformat(trip["return_date"])
+            # Position: day-of-year as percentage of 365
+            start_pct = round((dep.timetuple().tm_yday - 1) / 365 * 100, 1)
+            width_pct = max(1.5, round(trip["duration_days"] / 365 * 100, 1))
+
+            if len(trip["cities"]) == 1:
+                short_label = trip["cities"][0]
+            else:
+                short_label = trip["countries"][0]
+
+            blocks.append({
+                "id": trip["id"],
+                "label": short_label,
+                "start_pct": start_pct,
+                "width_pct": width_pct,
+                "duration": trip["duration_days"],
+                "is_multi_country": len(trip["countries"]) > 1,
+            })
+
+        years_data.append({
             "year": y,
             "trips_count": year_summary["trips_count"],
-            "countries": year_summary["countries"],
             "new_countries": year_summary["new_countries"],
-            "days_abroad": year_summary["days_abroad"],
-            "longest_trip": year_summary["longest_trip"],
-            "trips": [],
-        }
+            "blocks": blocks,
+        })
 
-    for card in trip_cards:
-        y = card["year"]
-        if y in year_map:
-            year_map[y]["trips"].append(card)
+    return years_data
 
-    return [year_map[y] for y in sorted(year_map.keys(), reverse=True)]
+
+def _build_year_groups(stamps):
+    """Group stamps by year (most recent first) for the stamps grid."""
+    groups = {}
+    for stamp in stamps:
+        y = stamp["year"]
+        if y not in groups:
+            groups[y] = []
+        groups[y].append(stamp)
+    return [{"year": y, "stamps": groups[y]} for y in sorted(groups, reverse=True)]
 
 
 def _compute_story_stats(timeline):
-    """Compute header-level story statistics."""
+    """Compute header-level stats."""
     s = timeline["summary"]
     home = timeline["home_base"]
     date_from = datetime.fromisoformat(timeline["date_range"]["from"])
-
-    # Find longest trip
-    longest = None
-    for trip in timeline["trips"]:
-        if longest is None or trip["duration_days"] > longest["duration_days"]:
-            longest = trip
-
-    longest_display = "N/A"
-    if longest:
-        dest = longest["cities"][0] if len(longest["cities"]) == 1 else "Multi-city"
-        longest_display = f"{dest} ({longest['duration_days']}d)"
-
     return {
         "total_trips": s["total_trips"],
         "countries_visited": s["countries_visited"],
-        "cities_visited": s["cities_visited"],
         "total_days": s["total_days_traveling"],
         "since_year": date_from.year,
         "home_city": home["city"],
         "home_country": home["country"],
-        "longest_trip": longest_display,
     }
 
 
 def generate_dashboard(timeline, df, output_path):
-    """
-    Generate the story-focused HTML dashboard.
-
-    Args:
-        timeline: Timeline dict from build_timeline()
-        df: Original DataFrame (used for the map if needed)
-        output_path: Where to write the output HTML file
-    """
+    """Generate the travel story HTML dashboard."""
     if not timeline or not timeline.get("trips"):
         _generate_empty_dashboard(output_path)
         return
 
     map_div = _build_trip_map(timeline)
-    trip_cards = _build_trip_cards(timeline)
-    year_sections = _build_year_sections(timeline, trip_cards)
+    stamps = _build_stamps(timeline)
+    year_groups = _build_year_groups(stamps)
+    timeline_data = _build_timeline_data(timeline)
     stats = _compute_story_stats(timeline)
 
-    # Render template
     template_dir = os.path.join(os.path.dirname(__file__), "templates")
     env = Environment(loader=FileSystemLoader(template_dir))
+    env.filters["country_flag"] = _cc_to_flag
     template = env.get_template("dashboard.html")
 
     html = template.render(
         map_div=map_div,
-        year_sections=year_sections,
+        year_groups=year_groups,
+        timeline_data=timeline_data,
         stats=stats,
-        timeline_json=json.dumps(timeline["summary"]),
     )
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(html)
-
     print(f"Dashboard saved to: {output_path}")
 
 
@@ -257,9 +279,7 @@ h1 { color: #4ecdc4; }
 <h1>No Trips Found</h1>
 <p>No travel data detected from your Photos library.</p>
 </div></body></html>"""
-
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(html)
-
     print(f"Empty dashboard saved to: {output_path}")
