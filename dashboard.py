@@ -138,7 +138,12 @@ def _build_stamps(timeline):
         # Stops detail for expanded view
         stops = []
         for stop in trip["stops"]:
-            districts = ", ".join(stop["districts"][:3]) if stop["districts"] else ""
+            # Filter out districts that are same as city name (redundant)
+            useful_districts = [
+                d for d in stop["districts"][:3]
+                if d and d != stop["city"]
+            ]
+            districts = ", ".join(useful_districts) if useful_districts else ""
             stops.append({
                 "city": stop["city"],
                 "country": stop["country"],
