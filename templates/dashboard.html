@@ -3,220 +3,496 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Travel Stats Dashboard</title>
+    <title>Your Travel Story</title>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --bg-deep: #0f0f1a;
+            --bg-base: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-card-hover: #1b2845;
+            --accent: #4ecdc4;
+            --accent-dim: rgba(78, 205, 196, 0.15);
+            --accent-glow: rgba(78, 205, 196, 0.08);
+            --text-primary: #e8e8ef;
+            --text-secondary: #8b8ba3;
+            --text-muted: #5a5a72;
+            --border: rgba(255, 255, 255, 0.06);
+            --border-accent: rgba(78, 205, 196, 0.2);
+            --coral: #ff6b6b;
+            --gold: #ffd166;
+            --lavender: #a78bfa;
         }
 
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            background: #1a1a2e;
-            color: #e0e0e0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            font-size: 15px;
             line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ─── Background texture ─── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 20% 0%, rgba(78, 205, 196, 0.03) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 100%, rgba(167, 139, 250, 0.02) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
         }
 
-        /* Header */
-        header {
+        /* ─── Header ─── */
+        .hero {
+            padding: 60px 0 40px;
             text-align: center;
-            padding: 30px 20px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
         }
 
-        header h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #4ecdc4;
-            letter-spacing: -0.5px;
+        .hero-label {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 16px;
         }
 
-        header .subtitle {
-            color: #888;
-            font-size: 0.95rem;
+        .hero h1 {
+            font-family: 'DM Serif Display', serif;
+            font-size: clamp(2.2rem, 5vw, 3.5rem);
+            font-weight: 400;
+            color: var(--text-primary);
+            line-height: 1.15;
+            margin-bottom: 8px;
+        }
+
+        .hero h1 em {
+            color: var(--accent);
+            font-style: italic;
+        }
+
+        .hero-sub {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 300;
+        }
+
+        /* ─── Stats Row ─── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            margin: 32px 0 40px;
+        }
+
+        .stat {
+            background: var(--bg-base);
+            padding: 24px 20px;
+            text-align: center;
+            transition: background 0.3s;
+        }
+
+        .stat:hover { background: var(--bg-card); }
+
+        .stat-value {
+            font-family: 'DM Serif Display', serif;
+            font-size: 2.2rem;
+            color: var(--text-primary);
+            line-height: 1.1;
+        }
+
+        .stat-label {
+            font-size: 0.78rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--text-muted);
             margin-top: 6px;
         }
 
-        /* Stats Cards */
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px;
-            padding: 20px;
-            text-align: center;
-            transition: transform 0.2s;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-2px);
-            border-color: rgba(78, 205, 196, 0.3);
-        }
-
-        .stat-card .value {
-            font-size: 2rem;
-            font-weight: 700;
-            color: #4ecdc4;
-            line-height: 1.2;
-        }
-
-        .stat-card .label {
-            font-size: 0.85rem;
-            color: #888;
-            margin-top: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .stat-card .detail {
-            font-size: 0.8rem;
-            color: #666;
-            margin-top: 2px;
-        }
-
-        /* Map Section */
+        /* ─── Map Section ─── */
         .map-section {
-            background: #16213e;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
             overflow: hidden;
-            margin-bottom: 24px;
+            margin-bottom: 48px;
         }
 
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            padding: 16px 20px 0;
-            color: #e0e0e0;
+        .map-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
         }
 
-        /* Charts Grid */
-        .charts-grid {
+        .map-header h2 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.3rem;
+            font-weight: 400;
+            color: var(--text-primary);
+        }
+
+        .map-header .map-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* ─── Year Sections ─── */
+        .year-section {
+            margin-bottom: 48px;
+            animation: fadeInUp 0.4s ease-out both;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .year-header {
+            display: flex;
+            align-items: baseline;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .year-header:hover .year-title { color: var(--accent); }
+
+        .year-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 2rem;
+            color: var(--text-primary);
+            transition: color 0.2s;
+        }
+
+        .year-meta {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .year-stat {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .year-stat strong {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .new-country-tag {
+            display: inline-block;
+            background: var(--accent-dim);
+            color: var(--accent);
+            font-size: 0.72rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            padding: 3px 10px;
+            border-radius: 100px;
+            border: 1px solid var(--border-accent);
+        }
+
+        .year-toggle {
+            margin-left: auto;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            transition: transform 0.3s;
+        }
+
+        .year-section.collapsed .year-toggle { transform: rotate(-90deg); }
+        .year-section.collapsed .year-body { display: none; }
+
+        /* ─── Trip Cards Grid ─── */
+        .trips-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-bottom: 24px;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px;
         }
 
-        .chart-card {
-            background: #16213e;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px;
-            padding: 16px;
+        .trip-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 22px;
+            transition: all 0.25s ease;
+            position: relative;
             overflow: hidden;
         }
 
-        /* Full-width sections */
-        .full-width {
-            grid-column: 1 / -1;
+        .trip-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--lavender));
+            opacity: 0;
+            transition: opacity 0.25s;
         }
 
-        .chart-card .plotly-graph-div {
-            width: 100% !important;
+        .trip-card:hover {
+            border-color: var(--border-accent);
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .charts-grid {
-                grid-template-columns: 1fr;
-            }
+        .trip-card:hover::before { opacity: 1; }
 
-            header h1 {
-                font-size: 1.5rem;
-            }
-
-            .stat-card .value {
-                font-size: 1.5rem;
-            }
+        .trip-card.multi-country::before {
+            background: linear-gradient(90deg, var(--accent), var(--gold), var(--coral));
         }
 
-        /* Footer */
+        .trip-destination {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            line-height: 1.3;
+            margin-bottom: 2px;
+        }
+
+        .trip-subtitle {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .trip-meta {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .trip-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.04);
+            padding: 4px 10px;
+            border-radius: 6px;
+        }
+
+        .trip-badge .icon { font-size: 0.72rem; }
+
+        .duration-badge {
+            color: var(--accent);
+            background: var(--accent-dim);
+            font-weight: 500;
+        }
+
+        /* ─── Stops List ─── */
+        .stops-list {
+            list-style: none;
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+        }
+
+        .stop-item {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            padding: 4px 0;
+            font-size: 0.85rem;
+        }
+
+        .stop-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            flex-shrink: 0;
+            margin-top: 6px;
+        }
+
+        .stop-city {
+            color: var(--text-primary);
+            font-weight: 400;
+        }
+
+        .stop-days {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            margin-left: auto;
+            white-space: nowrap;
+        }
+
+        .stop-districts {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            padding-left: 16px;
+            margin-top: -2px;
+            margin-bottom: 4px;
+        }
+
+        /* ─── Footer ─── */
         footer {
             text-align: center;
-            padding: 24px;
-            color: #555;
+            padding: 40px 24px;
+            color: var(--text-muted);
             font-size: 0.8rem;
-            border-top: 1px solid rgba(255,255,255,0.05);
-            margin-top: 24px;
+            border-top: 1px solid var(--border);
+            margin-top: 32px;
         }
+
+        footer a { color: var(--accent); text-decoration: none; }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 768px) {
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .trips-grid {
+                grid-template-columns: 1fr;
+            }
+            .hero { padding: 40px 0 24px; }
+            .stat-value { font-size: 1.6rem; }
+            .year-header { flex-wrap: wrap; }
+        }
+
+        @media (max-width: 480px) {
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
+            .year-meta { gap: 8px; }
+        }
+
+        /* ─── Plotly overrides ─── */
+        .js-plotly-plot .plotly .modebar { right: 8px !important; }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>Travel Stats Dashboard</h1>
-            <p class="subtitle">{{ stats.date_range }} &mdash; {{ stats.total_photos }} geotagged photos</p>
+        <!-- Hero -->
+        <header class="hero">
+            <div class="hero-label">Your Travel Story</div>
+            <h1><em>{{ stats.countries_visited }}</em> countries since {{ stats.since_year }}</h1>
+            <p class="hero-sub">{{ stats.total_trips }} trips from {{ stats.home_city }}, {{ stats.home_country }}</p>
         </header>
 
-        <!-- Summary Stats -->
+        <!-- Stats -->
         <div class="stats-row">
-            <div class="stat-card">
-                <div class="value">{{ stats.total_countries }}</div>
-                <div class="label">Countries</div>
+            <div class="stat">
+                <div class="stat-value">{{ stats.total_trips }}</div>
+                <div class="stat-label">Trips</div>
             </div>
-            <div class="stat-card">
-                <div class="value">{{ stats.total_cities }}</div>
-                <div class="label">Cities</div>
+            <div class="stat">
+                <div class="stat-value">{{ stats.countries_visited }}</div>
+                <div class="stat-label">Countries</div>
             </div>
-            <div class="stat-card">
-                <div class="value">{{ stats.total_photos }}</div>
-                <div class="label">Photos</div>
+            <div class="stat">
+                <div class="stat-value">{{ stats.total_days }}</div>
+                <div class="stat-label">Days Traveling</div>
             </div>
-            <div class="stat-card">
-                <div class="value">{{ stats.top_country }}</div>
-                <div class="label">Top Country</div>
-                <div class="detail">{{ stats.top_country_count }} photos</div>
-            </div>
-            <div class="stat-card">
-                <div class="value">{{ stats.busiest_month }}</div>
-                <div class="label">Busiest Month</div>
-                <div class="detail">{{ stats.busiest_month_count }} photos</div>
+            <div class="stat">
+                <div class="stat-value">{{ stats.cities_visited }}</div>
+                <div class="stat-label">Cities</div>
             </div>
         </div>
 
         <!-- Map -->
         <div class="map-section">
-            <div class="section-title">Photo Locations</div>
+            <div class="map-header">
+                <h2>Trip Map</h2>
+                <span class="map-hint">Marker size = trip duration</span>
+            </div>
             {{ map_div | safe }}
         </div>
 
-        <!-- Timeline (full width) -->
-        <div class="charts-grid">
-            <div class="chart-card full-width">
-                {{ timeline_chart | safe }}
+        <!-- Year Sections -->
+        {% for year in year_sections %}
+        <section class="year-section" style="animation-delay: {{ loop.index0 * 0.08 }}s">
+            <div class="year-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                <span class="year-title">{{ year.year }}</span>
+                <div class="year-meta">
+                    <span class="year-stat"><strong>{{ year.trips_count }}</strong> trips</span>
+                    <span class="year-stat"><strong>{{ year.days_abroad }}</strong> days</span>
+                    <span class="year-stat"><strong>{{ year.countries | length }}</strong> countries</span>
+                    {% for c in year.new_countries %}
+                    <span class="new-country-tag">+ {{ c }}</span>
+                    {% endfor %}
+                </div>
+                <span class="year-toggle">&#9662;</span>
             </div>
-
-            <!-- Bar Charts -->
-            <div class="chart-card">
-                {{ countries_chart | safe }}
+            <div class="year-body">
+                <div class="trips-grid">
+                    {% for trip in year.trips %}
+                    <div class="trip-card {% if trip.is_multi_country %}multi-country{% endif %}">
+                        <div class="trip-destination">{{ trip.destination }}</div>
+                        <div class="trip-subtitle">{{ trip.subtitle }} &middot; {{ trip.date_range }}</div>
+                        <div class="trip-meta">
+                            <span class="trip-badge duration-badge">
+                                {{ trip.duration }}d
+                            </span>
+                            <span class="trip-badge">
+                                <span class="icon">&#9737;</span> {{ trip.photo_count }} photos
+                            </span>
+                            {% if trip.stops | length > 1 %}
+                            <span class="trip-badge">
+                                {{ trip.stops | length }} stops
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% if trip.stops | length > 1 %}
+                        <ul class="stops-list">
+                            {% for stop in trip.stops %}
+                            <li>
+                                <div class="stop-item">
+                                    <span class="stop-dot"></span>
+                                    <span class="stop-city">{{ stop.city }}{% if stop.country != trip.subtitle %}, {{ stop.country }}{% endif %}</span>
+                                    <span class="stop-days">{{ stop.days }}d</span>
+                                </div>
+                                {% if stop.districts %}
+                                <div class="stop-districts">{{ stop.districts }}</div>
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% elif trip.stops | length == 1 and trip.stops[0].districts %}
+                        <div class="stop-districts" style="color: var(--text-muted); font-size: 0.8rem; margin-top: -4px;">
+                            {{ trip.stops[0].districts }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
-            <div class="chart-card">
-                {{ cities_chart | safe }}
-            </div>
-
-            <!-- Yearly Breakdown (full width) -->
-            <div class="chart-card full-width">
-                {{ yearly_chart | safe }}
-            </div>
-        </div>
+        </section>
+        {% endfor %}
 
         <footer>
-            Generated from macOS Photos Library
+            Generated from macOS Photos Library &middot; <a href="output/timeline.json">timeline.json</a>
         </footer>
     </div>
 </body>
