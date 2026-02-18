@@ -259,6 +259,13 @@ def extract_photo_data(db_path=None, debug_plists=False):
     # reverse_geocoder (ASCII). E.g., "Mugla" → "Muğla"
     df["city"] = df["city"].replace(_CITY_NAME_FIXES)
 
+    # Drop photos with no usable location data
+    before = len(df)
+    df = df[df["city"] != "Unknown"].reset_index(drop=True)
+    dropped = before - len(df)
+    if dropped:
+        print(f"Dropped {dropped} photos with unknown location.")
+
     return df
 
 

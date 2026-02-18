@@ -2,190 +2,269 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#080a14">
     <title>Your Travel Story</title>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* ═══════════════════════════════════════════════
+           TOKENS — Aurora Glass
+           ═══════════════════════════════════════════════ */
         :root {
-            --bg-deep: #0f0f1a;
-            --bg-base: #1a1a2e;
-            --bg-card: #16213e;
-            --bg-card-hover: #1b2845;
-            --bg-stamp: #1c2541;
-            --accent: #4ecdc4;
-            --accent-dim: rgba(78, 205, 196, 0.12);
-            --accent-glow: rgba(78, 205, 196, 0.06);
-            --text-primary: #e8e8ef;
-            --text-secondary: #8b8ba3;
-            --text-muted: #5a5a72;
-            --border: rgba(255, 255, 255, 0.06);
-            --border-accent: rgba(78, 205, 196, 0.25);
-            --coral: #ff6b6b;
-            --gold: #ffd166;
-            --lavender: #a78bfa;
+            --bg: #080a14;
+            --glass: rgba(255, 255, 255, 0.04);
+            --glass-hover: rgba(255, 255, 255, 0.07);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-border-hover: rgba(255, 255, 255, 0.14);
+            --text: rgba(255, 255, 255, 0.90);
+            --text-2: rgba(255, 255, 255, 0.50);
+            --text-3: rgba(255, 255, 255, 0.25);
+            --accent-teal: #4dd9c0;
+            --accent-lavender: #a78bfa;
+            --accent-rose: #f472b6;
+            --gradient: linear-gradient(135deg, #4dd9c0, #a78bfa, #f472b6);
+
+            --font: 'Outfit', system-ui, -apple-system, sans-serif;
+
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 40px;
+            --space-2xl: 64px;
+
+            --radius: 20px;
+            --radius-sm: 12px;
+            --radius-full: 9999px;
+
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* ═══════════════════════════════════════════════
+           RESET & BASE
+           ═══════════════════════════════════════════════ */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html {
+            -webkit-text-size-adjust: 100%;
+            scroll-behavior: smooth;
+        }
 
         body {
-            background: var(--bg-deep);
-            color: var(--text-primary);
-            font-family: 'DM Sans', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            font-weight: 400;
             font-size: 15px;
             line-height: 1.6;
             -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+            padding-bottom: calc(80px + var(--safe-bottom));
+            min-height: 100vh;
         }
 
-        body::before {
-            content: '';
+        /* ─── Aurora mesh background ─── */
+        .aurora {
             position: fixed;
             inset: 0;
-            background:
-                radial-gradient(ellipse at 15% 0%, rgba(78, 205, 196, 0.03) 0%, transparent 50%),
-                radial-gradient(ellipse at 85% 100%, rgba(167, 139, 250, 0.02) 0%, transparent 50%);
-            pointer-events: none;
             z-index: 0;
+            pointer-events: none;
+            background:
+                radial-gradient(ellipse 80% 50% at 15% 10%, rgba(77, 217, 192, 0.12) 0%, transparent 70%),
+                radial-gradient(ellipse 60% 60% at 85% 90%, rgba(167, 139, 250, 0.10) 0%, transparent 70%),
+                radial-gradient(ellipse 50% 50% at 50% 50%, rgba(244, 114, 182, 0.06) 0%, transparent 70%),
+                radial-gradient(ellipse 55% 45% at 80% 15%, rgba(96, 165, 250, 0.08) 0%, transparent 70%);
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
+        /* ─── SVG noise grain overlay ─── */
+        .noise {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: 0.4;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+            background-repeat: repeat;
+            background-size: 200px;
+        }
+
+        /* ─── Glass mixin pattern ─── */
+        .glass {
+            background: var(--glass);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+        }
+
+        /* ─── Page wrapper ─── */
+        .page {
             position: relative;
             z-index: 1;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 0 var(--space-md);
         }
 
-        /* ═══════════════════════════════════════
+        /* ─── Scroll animation base ─── */
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ─── Gradient text utility ─── */
+        .gradient-text {
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* ═══════════════════════════════════════════════
            HERO
-           ═══════════════════════════════════════ */
+           ═══════════════════════════════════════════════ */
         .hero {
-            padding: 56px 0 40px;
-            text-align: center;
+            padding: calc(var(--space-2xl) + var(--safe-top)) 0 var(--space-lg);
         }
 
         .hero-eyebrow {
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             font-weight: 500;
             letter-spacing: 3px;
             text-transform: uppercase;
-            color: var(--accent);
-            margin-bottom: 14px;
+            color: var(--text-3);
+            margin-bottom: var(--space-sm);
         }
 
         .hero h1 {
-            font-family: 'DM Serif Display', serif;
-            font-size: clamp(2rem, 5vw, 3.2rem);
-            font-weight: 400;
-            color: var(--text-primary);
-            line-height: 1.15;
+            font-size: 2.6rem;
+            font-weight: 300;
+            color: var(--text);
+            line-height: 1.08;
+            letter-spacing: -1px;
         }
 
-        .hero h1 em {
-            color: var(--accent);
-            font-style: italic;
+        .hero h1 .accent-num {
+            font-weight: 700;
+            font-size: 3.2rem;
         }
 
         .hero-sub {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
+            color: var(--text-2);
+            font-size: 0.9rem;
             font-weight: 300;
-            margin-top: 8px;
+            margin-top: 10px;
         }
 
-        /* ─── Compact stats ─── */
+        /* ═══════════════════════════════════════════════
+           STATS STRIP
+           ═══════════════════════════════════════════════ */
         .stats-strip {
             display: flex;
-            justify-content: center;
-            gap: 32px;
-            margin-top: 24px;
-            padding-top: 20px;
-            border-top: 1px solid var(--border);
+            gap: 2px;
+            margin-top: var(--space-lg);
+            border-radius: var(--radius);
+            overflow: hidden;
         }
 
-        .ss-item {
-            text-align: center;
+        .stat-cell {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px 8px;
+            background: var(--glass);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
         }
 
-        .ss-val {
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.8rem;
-            color: var(--text-primary);
-            line-height: 1.1;
+        .stat-cell:first-child {
+            border-radius: var(--radius) 0 0 var(--radius);
+        }
+        .stat-cell:last-child {
+            border-radius: 0 var(--radius) var(--radius) 0;
         }
 
-        .ss-label {
-            font-size: 0.7rem;
+        .stat-val {
+            font-size: 1.5rem;
+            font-weight: 600;
+            line-height: 1;
+            color: var(--text);
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
             font-weight: 500;
-            letter-spacing: 1.5px;
+            color: var(--text-3);
             text-transform: uppercase;
-            color: var(--text-muted);
-            margin-top: 2px;
+            letter-spacing: 1.5px;
+            margin-top: 4px;
         }
 
-        /* ═══════════════════════════════════════
-           HORIZONTAL TIMELINE
-           ═══════════════════════════════════════ */
+        /* ═══════════════════════════════════════════════
+           TIMELINE
+           ═══════════════════════════════════════════════ */
         .timeline-section {
-            margin: 40px 0;
+            margin-top: var(--space-xl);
+        }
+
+        .timeline-panel {
+            padding: var(--space-lg);
         }
 
         .section-label {
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.2rem;
-            color: var(--text-primary);
-            margin-bottom: 16px;
-            padding-left: 2px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-3);
+            margin-bottom: var(--space-md);
         }
 
-        .timeline-scroll {
-            overflow-x: auto;
-            overflow-y: hidden;
-            padding-bottom: 12px;
-            scrollbar-width: thin;
-            scrollbar-color: var(--text-muted) transparent;
-        }
-
-        .timeline-scroll::-webkit-scrollbar { height: 6px; }
-        .timeline-scroll::-webkit-scrollbar-track { background: transparent; }
-        .timeline-scroll::-webkit-scrollbar-thumb {
-            background: var(--text-muted);
-            border-radius: 3px;
-        }
-
-        .timeline-track {
+        .tl-track {
             display: flex;
             flex-direction: column;
             gap: 6px;
-            min-width: max-content;
         }
 
         .tl-year-row {
             display: flex;
             align-items: center;
-            gap: 0;
-            height: 40px;
+            height: 32px;
         }
 
         .tl-year-label {
-            width: 56px;
+            width: 40px;
             flex-shrink: 0;
-            font-family: 'DM Serif Display', serif;
-            font-size: 0.95rem;
-            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-2);
             text-align: right;
-            padding-right: 12px;
+            padding-right: 10px;
         }
 
         .tl-bar {
             position: relative;
-            width: 800px;
-            height: 32px;
+            flex: 1;
+            height: 24px;
             background: rgba(255, 255, 255, 0.02);
             border-radius: 6px;
-            border: 1px solid var(--border);
+            overflow: hidden;
         }
 
         /* Month grid lines */
@@ -196,11 +275,10 @@
             background: repeating-linear-gradient(
                 90deg,
                 transparent,
-                transparent calc(100% / 12 - 1px),
-                rgba(255,255,255,0.03) calc(100% / 12 - 1px),
+                transparent calc(100% / 12 - 0.5px),
+                rgba(255,255,255,0.03) calc(100% / 12 - 0.5px),
                 rgba(255,255,255,0.03) calc(100% / 12)
             );
-            border-radius: 6px;
             pointer-events: none;
         }
 
@@ -209,407 +287,1051 @@
             top: 3px;
             bottom: 3px;
             border-radius: 4px;
-            background: var(--accent);
-            opacity: 0.85;
+            background: var(--gradient);
+            opacity: 0.75;
             cursor: pointer;
             transition: opacity 0.2s, transform 0.2s;
-            display: flex;
-            align-items: center;
-            padding: 0 6px;
-            overflow: hidden;
-            white-space: nowrap;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .tl-block:hover {
-            opacity: 1;
-            transform: scaleY(1.15);
-            z-index: 2;
-        }
+        .tl-block:hover { opacity: 1; transform: scaleY(1.15); }
+        .tl-block:active { opacity: 1; }
 
-        .tl-block.multi { background: linear-gradient(90deg, var(--accent), var(--gold)); }
-
-        .tl-block-text {
-            font-size: 0.65rem;
-            font-weight: 500;
-            color: var(--bg-deep);
-            letter-spacing: 0.3px;
-        }
-
-        /* Month labels */
         .tl-months {
             display: flex;
-            margin-left: 56px;
-            width: 800px;
+            margin-left: 40px;
+            margin-top: 4px;
         }
 
         .tl-month {
             flex: 1;
             text-align: center;
-            font-size: 0.65rem;
-            color: var(--text-muted);
+            font-size: 0.55rem;
+            font-weight: 500;
+            color: var(--text-3);
             letter-spacing: 0.5px;
         }
 
-        /* ═══════════════════════════════════════
+        /* ═══════════════════════════════════════════════
            MAP
-           ═══════════════════════════════════════ */
+           ═══════════════════════════════════════════════ */
         .map-section {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
+            margin-top: var(--space-lg);
+            border-radius: var(--radius);
             overflow: hidden;
-            margin: 32px 0;
+            border: 1px solid var(--glass-border);
         }
 
-        /* ═══════════════════════════════════════
-           TRIP STAMPS
-           ═══════════════════════════════════════ */
-        .stamps-section {
-            margin: 40px 0;
+        .map-section .js-plotly-plot { width: 100% !important; }
+        .map-section .plotly .modebar-container { display: none !important; }
+
+        /* ═══════════════════════════════════════════════
+           TRIP FEED
+           ═══════════════════════════════════════════════ */
+        .feed {
+            padding: var(--space-xl) 0;
         }
 
-        .year-group {
-            margin-bottom: 36px;
-        }
-
-        .year-group-header {
+        /* ─── Sticky year header ─── */
+        .year-header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
             display: flex;
-            align-items: baseline;
-            gap: 12px;
-            margin-bottom: 14px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--border);
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm) var(--space-md);
+            margin: 0 calc(-1 * var(--space-md));
+            background: rgba(8, 10, 20, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
         }
 
-        .yg-title {
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.6rem;
-            color: var(--text-primary);
+        .yh-year {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text);
+            line-height: 1;
         }
 
-        .yg-count {
-            font-size: 0.82rem;
-            color: var(--text-muted);
-        }
-
-        .yg-new-tag {
-            display: inline-block;
-            background: var(--accent-dim);
-            color: var(--accent);
-            font-size: 0.68rem;
+        .yh-count {
+            font-size: 0.7rem;
             font-weight: 500;
-            letter-spacing: 0.3px;
-            padding: 2px 8px;
-            border-radius: 100px;
-            border: 1px solid rgba(78, 205, 196, 0.15);
+            color: var(--text-3);
+            padding-top: 2px;
         }
 
-        /* ─── Stamps grid ─── */
-        .stamps-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 10px;
+        .yh-line {
+            flex: 1;
+            height: 1px;
+            background: var(--glass-border);
         }
 
-        /* ─── Stamp (collapsed) ─── */
-        .stamp {
-            background: var(--bg-stamp);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 14px 16px;
+        .year-narrative {
+            font-size: 0.85rem;
+            font-weight: 300;
+            font-style: italic;
+            color: var(--text-2);
+            line-height: 1.6;
+            margin: var(--space-md) 0;
+            padding-left: 2px;
+        }
+
+        /* ─── Trip card (glass) ─── */
+        .year-cards {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .trip-card {
+            background: var(--glass);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: var(--space-md);
             cursor: pointer;
-            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+            transition: background 0.25s, border-color 0.3s, box-shadow 0.3s;
             position: relative;
-            overflow: hidden;
         }
 
-        .stamp::after {
+        .trip-card:active {
+            background: var(--glass-hover);
+        }
+
+        /* Expanded state: gradient glow border */
+        .trip-card.expanded {
+            border-color: var(--glass-border-hover);
+            box-shadow:
+                0 0 0 1px rgba(77, 217, 192, 0.08),
+                0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        /* Card head: flag + text + chevron */
+        .card-head {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .card-flag {
+            font-size: 1.5rem;
+            line-height: 1;
+            flex-shrink: 0;
+            padding-top: 2px;
+        }
+
+        .card-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .card-dest {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--text);
+            line-height: 1.25;
+        }
+
+        .card-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+
+        .card-when {
+            font-size: 0.75rem;
+            font-weight: 400;
+            color: var(--text-2);
+        }
+
+        .card-dur {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            background: rgba(77, 217, 192, 0.12);
+            color: var(--accent-teal);
+            letter-spacing: 0.3px;
+        }
+
+        .card-tagline {
+            font-size: 0.78rem;
+            font-weight: 300;
+            font-style: italic;
+            color: var(--text-3);
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        /* Chevron */
+        .card-chevron {
+            flex-shrink: 0;
+            width: 18px;
+            height: 18px;
+            color: var(--text-3);
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            align-self: center;
+        }
+
+        .trip-card.expanded .card-chevron {
+            transform: rotate(180deg);
+            color: var(--accent-teal);
+        }
+
+        /* ─── Card expanded details ─── */
+        .card-details {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+                        opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        .trip-card.expanded .card-details {
+            max-height: 800px;
+            opacity: 1;
+        }
+
+        .card-details-inner {
+            padding-top: var(--space-md);
+            margin-top: var(--space-md);
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .card-narrative {
+            font-size: 0.85rem;
+            font-weight: 300;
+            color: var(--text-2);
+            line-height: 1.65;
+            margin-bottom: var(--space-md);
+        }
+
+        /* Stop list (vertical mini-timeline with glowing dots) */
+        .stops-list {
+            list-style: none;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        /* Vertical line */
+        .stops-list::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 2px;
-            background: var(--accent);
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.25s ease;
+            left: 4px;
+            top: 10px;
+            bottom: 10px;
+            width: 1px;
+            background: linear-gradient(to bottom, var(--accent-teal), var(--accent-lavender), var(--accent-rose));
+            opacity: 0.3;
         }
 
-        .stamp:hover {
-            border-color: var(--border-accent);
-            background: var(--bg-card-hover);
+        .stop-item {
+            position: relative;
+            padding: 6px 0 6px 6px;
         }
 
-        .stamp:hover::after { transform: scaleX(1); }
-
-        .stamp.multi::after {
-            background: linear-gradient(90deg, var(--accent), var(--gold), var(--coral));
+        /* Glowing dot */
+        .stop-item::before {
+            content: '';
+            position: absolute;
+            left: -19px;
+            top: 14px;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent-teal);
+            box-shadow: 0 0 6px rgba(77, 217, 192, 0.5);
         }
 
-        .stamp-flag {
-            font-size: 1.3rem;
-            line-height: 1;
-            margin-bottom: 6px;
+        .stop-item:nth-child(2n)::before {
+            background: var(--accent-lavender);
+            box-shadow: 0 0 6px rgba(167, 139, 250, 0.5);
         }
 
-        .stamp-dest {
-            font-family: 'DM Serif Display', serif;
-            font-size: 1.05rem;
-            color: var(--text-primary);
-            line-height: 1.25;
-            margin-bottom: 2px;
+        .stop-item:nth-child(3n)::before {
+            background: var(--accent-rose);
+            box-shadow: 0 0 6px rgba(244, 114, 182, 0.5);
         }
 
-        .stamp-when {
-            font-size: 0.78rem;
-            color: var(--text-secondary);
-        }
-
-        .stamp-dur {
-            display: inline-block;
-            background: var(--accent-dim);
-            color: var(--accent);
-            font-size: 0.7rem;
-            font-weight: 600;
-            padding: 1px 7px;
-            border-radius: 4px;
-            margin-left: 4px;
-        }
-
-        /* ─── Stamp expanded ─── */
-        .stamp.expanded {
-            grid-column: span 2;
-            background: var(--bg-card);
-            border-color: var(--border-accent);
-        }
-
-        .stamp.expanded::after { transform: scaleX(1); }
-
-        .stamp-details {
-            display: none;
-            margin-top: 12px;
-            padding-top: 10px;
-            border-top: 1px solid var(--border);
-        }
-
-        .stamp.expanded .stamp-details { display: block; }
-
-        .stamp-stops {
-            list-style: none;
-        }
-
-        .stamp-stop {
+        .stop-head {
             display: flex;
             align-items: baseline;
-            gap: 8px;
-            padding: 3px 0;
-            font-size: 0.82rem;
+            gap: var(--space-sm);
         }
 
-        .stamp-stop-dot {
-            width: 5px; height: 5px;
-            border-radius: 50%;
-            background: var(--accent);
-            flex-shrink: 0;
-            margin-top: 6px;
+        .stop-city {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text);
         }
 
-        .stamp-stop-city {
-            color: var(--text-primary);
-        }
-
-        .stamp-stop-meta {
-            color: var(--text-muted);
-            font-size: 0.75rem;
+        .stop-days {
+            font-size: 0.7rem;
+            font-weight: 400;
+            color: var(--text-3);
             margin-left: auto;
         }
 
-        .stamp-stop-districts {
-            font-size: 0.72rem;
-            color: var(--text-muted);
-            padding-left: 13px;
+        .stop-districts {
+            font-size: 0.7rem;
+            font-weight: 300;
+            color: var(--text-3);
+            margin-top: 2px;
         }
 
-        /* ═══════════════════════════════════════
+        /* ═══════════════════════════════════════════════
            FOOTER
-           ═══════════════════════════════════════ */
+           ═══════════════════════════════════════════════ */
         footer {
             text-align: center;
-            padding: 32px 24px;
-            color: var(--text-muted);
-            font-size: 0.78rem;
-            border-top: 1px solid var(--border);
-            margin-top: 24px;
+            padding: var(--space-xl) var(--space-md);
+            color: var(--text-3);
+            font-size: 0.7rem;
+            font-weight: 300;
+            letter-spacing: 0.5px;
         }
 
-        /* ═══════════════════════════════════════
+        /* ═══════════════════════════════════════════════
+           CHAT — FAB + BOTTOM SHEET (glass)
+           ═══════════════════════════════════════════════ */
+        .chat-fab {
+            position: fixed;
+            bottom: calc(20px + var(--safe-bottom));
+            right: 20px;
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            -webkit-tap-highlight-color: transparent;
+            transition: transform 0.2s, box-shadow 0.2s;
+            animation: fab-glow 3s ease-in-out infinite;
+            background: rgba(77, 217, 192, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        @keyframes fab-glow {
+            0%, 100% { box-shadow: 0 4px 20px rgba(77, 217, 192, 0.2), 0 0 0 0 rgba(77, 217, 192, 0.25); }
+            50% { box-shadow: 0 4px 20px rgba(77, 217, 192, 0.2), 0 0 0 10px rgba(77, 217, 192, 0); }
+        }
+
+        .chat-fab:active { transform: scale(0.92); }
+
+        .chat-fab svg {
+            width: 22px;
+            height: 22px;
+            fill: var(--accent-teal);
+        }
+
+        .chat-fab .icon-close { display: none; }
+        .chat-fab.active .icon-chat { display: none; }
+        .chat-fab.active .icon-close { display: block; }
+        .chat-fab.active { animation: none; }
+
+        /* Backdrop */
+        .chat-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .chat-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Bottom sheet (glass) */
+        .chat-sheet {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-height: 85vh;
+            background: rgba(12, 14, 24, 0.85);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border-top: 1px solid var(--glass-border);
+            border-radius: var(--radius) var(--radius) 0 0;
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+            padding-bottom: var(--safe-bottom);
+        }
+
+        .chat-sheet.open { transform: translateY(0); }
+
+        .sheet-handle {
+            display: flex;
+            justify-content: center;
+            padding: 12px 0 4px;
+            flex-shrink: 0;
+        }
+
+        .sheet-handle-bar {
+            width: 36px;
+            height: 4px;
+            background: var(--text-3);
+            border-radius: 2px;
+        }
+
+        .sheet-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px var(--space-md) var(--space-md);
+            flex-shrink: 0;
+        }
+
+        .sheet-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .sheet-close {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-2);
+            font-size: 1rem;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .sheet-close:active { background: var(--glass-hover); }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 var(--space-md) var(--space-md);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overscroll-behavior: contain;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .chat-messages::-webkit-scrollbar { display: none; }
+
+        .chat-msg {
+            max-width: 82%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 0.85rem;
+            font-weight: 400;
+            line-height: 1.5;
+            word-wrap: break-word;
+            animation: msg-in 0.25s ease;
+        }
+
+        @keyframes msg-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .chat-msg.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, rgba(77, 217, 192, 0.25), rgba(167, 139, 250, 0.2));
+            border: 1px solid rgba(77, 217, 192, 0.2);
+            color: var(--text);
+            border-bottom-right-radius: 4px;
+            font-weight: 500;
+        }
+
+        .chat-msg.assistant {
+            align-self: flex-start;
+            background: var(--glass);
+            color: var(--text);
+            border: 1px solid var(--glass-border);
+            border-bottom-left-radius: 4px;
+            max-width: 90%;
+        }
+
+        /* ─── Rendered markdown inside assistant messages ─── */
+        .chat-msg.assistant strong {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .chat-msg.assistant ul,
+        .chat-msg.assistant ol {
+            margin: 6px 0;
+            padding-left: 18px;
+        }
+
+        .chat-msg.assistant li {
+            margin-bottom: 4px;
+            line-height: 1.5;
+        }
+
+        .chat-msg.assistant li::marker {
+            color: var(--accent-teal);
+        }
+
+        .chat-msg.assistant p {
+            margin-bottom: 8px;
+        }
+
+        .chat-msg.assistant p:last-child {
+            margin-bottom: 0;
+        }
+
+        .chat-msg.assistant code {
+            background: rgba(255, 255, 255, 0.06);
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 0.82em;
+        }
+
+        .chat-msg.system {
+            align-self: center;
+            background: transparent;
+            color: var(--text-3);
+            font-size: 0.75rem;
+            text-align: center;
+            padding: 6px 12px;
+        }
+
+        .chat-msg .typing-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: var(--accent-teal);
+            margin-left: 2px;
+            vertical-align: text-bottom;
+            animation: blink 0.8s step-end infinite;
+        }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .chat-input-bar {
+            display: flex;
+            gap: var(--space-sm);
+            padding: var(--space-sm) var(--space-md) var(--space-md);
+            flex-shrink: 0;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-full);
+            padding: 12px 18px;
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 0.88rem;
+            font-weight: 400;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .chat-input:focus { border-color: rgba(77, 217, 192, 0.3); }
+        .chat-input::placeholder { color: var(--text-3); }
+
+        .chat-send {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, var(--accent-teal), var(--accent-lavender));
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: opacity 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .chat-send:active { opacity: 0.8; }
+        .chat-send:disabled { opacity: 0.25; pointer-events: none; }
+        .chat-send svg { width: 18px; height: 18px; fill: var(--bg); }
+
+        /* ═══════════════════════════════════════════════
            RESPONSIVE
-           ═══════════════════════════════════════ */
-        @media (max-width: 768px) {
-            .stats-strip { gap: 20px; flex-wrap: wrap; }
-            .ss-val { font-size: 1.4rem; }
-            .stamps-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
-            .stamp.expanded { grid-column: span 1; }
-            .hero { padding: 36px 0 28px; }
+           ═══════════════════════════════════════════════ */
+
+        /* ─── Tablet (768px+) ─── */
+        @media (min-width: 768px) {
+            .page { max-width: 720px; }
+
+            .hero {
+                padding-top: var(--space-2xl);
+                text-align: center;
+            }
+
+            .hero h1 { font-size: 3.2rem; }
+            .hero h1 .accent-num { font-size: 3.8rem; }
+
+            .stats-strip { max-width: 420px; margin-left: auto; margin-right: auto; }
+
+            .year-cards {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: var(--space-sm);
+            }
+
+            .trip-card.expanded {
+                grid-column: 1 / -1;
+            }
+
+            /* Chat: floating panel instead of full bottom sheet */
+            .chat-sheet {
+                left: auto;
+                right: 24px;
+                bottom: 90px;
+                width: 400px;
+                max-height: 520px;
+                border-radius: var(--radius);
+                border: 1px solid var(--glass-border);
+                box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5);
+                padding-bottom: 0;
+            }
+
+            .chat-backdrop { background: transparent; }
+            .chat-fab { bottom: 24px; right: 24px; }
         }
 
-        @media (max-width: 480px) {
-            .stats-strip { gap: 16px; }
-            .stamps-grid { grid-template-columns: 1fr 1fr; }
+        /* ─── Desktop (1024px+) ─── */
+        @media (min-width: 1024px) {
+            .page { max-width: 900px; }
+
+            .hero h1 { font-size: 3.6rem; }
+            .hero h1 .accent-num { font-size: 4.2rem; }
+
+            .year-cards {
+                grid-template-columns: 1fr 1fr 1fr;
+            }
         }
 
-        .js-plotly-plot .plotly .modebar { right: 8px !important; }
+        /* ─── Plotly overrides ─── */
+        .js-plotly-plot .plotly .modebar { display: none !important; }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Aurora mesh gradient background -->
+    <div class="aurora"></div>
+    <!-- Noise grain overlay -->
+    <div class="noise"></div>
+
+    <div class="page">
 
         <!-- ═══ Hero ═══ -->
-        <header class="hero">
+        <header class="hero reveal">
             <div class="hero-eyebrow">Your Travel Story</div>
-            <h1><em>{{ stats.countries_visited }}</em> countries since {{ stats.since_year }}</h1>
+            <h1><span class="accent-num gradient-text">{{ stats.countries_visited }}</span> countries<br>since {{ stats.since_year }}</h1>
             <p class="hero-sub">{{ stats.total_trips }} trips from {{ stats.home_city }}</p>
-
-            <div class="stats-strip">
-                <div class="ss-item">
-                    <div class="ss-val">{{ stats.total_trips }}</div>
-                    <div class="ss-label">Trips</div>
-                </div>
-                <div class="ss-item">
-                    <div class="ss-val">{{ stats.countries_visited }}</div>
-                    <div class="ss-label">Countries</div>
-                </div>
-                <div class="ss-item">
-                    <div class="ss-val">{{ stats.total_days }}</div>
-                    <div class="ss-label">Days Away</div>
-                </div>
-            </div>
         </header>
 
-        <!-- ═══ Horizontal Timeline ═══ -->
-        <section class="timeline-section">
-            <div class="section-label">Timeline</div>
-            <div class="timeline-scroll">
-                <div class="timeline-track">
+        <!-- ═══ Stats Strip ═══ -->
+        <div class="stats-strip reveal">
+            <div class="stat-cell">
+                <span class="stat-val">{{ stats.total_trips }}</span>
+                <span class="stat-label">Trips</span>
+            </div>
+            <div class="stat-cell">
+                <span class="stat-val">{{ stats.countries_visited }}</span>
+                <span class="stat-label">Countries</span>
+            </div>
+            <div class="stat-cell">
+                <span class="stat-val">{{ stats.total_days }}</span>
+                <span class="stat-label">Days</span>
+            </div>
+        </div>
+
+        <!-- ═══ Timeline ═══ -->
+        <section class="timeline-section reveal">
+            <div class="timeline-panel glass">
+                <div class="section-label">Timeline</div>
+                <div class="tl-track">
                     {% for yr in timeline_data %}
                     <div class="tl-year-row">
                         <div class="tl-year-label">{{ yr.year }}</div>
                         <div class="tl-bar">
                             {% for b in yr.blocks %}
-                            <div class="tl-block {% if b.is_multi_country %}multi{% endif %}"
+                            <div class="tl-block"
                                  style="left: {{ b.start_pct }}%; width: {{ b.width_pct }}%;"
                                  title="{{ b.label }} · {{ b.duration }}d"
                                  onclick="scrollToStamp('{{ b.id }}')">
-                                {% if b.width_pct > 4 %}
-                                <span class="tl-block-text">{{ b.label }}</span>
-                                {% endif %}
                             </div>
                             {% endfor %}
                         </div>
                     </div>
                     {% endfor %}
                     <div class="tl-months">
-                        <span class="tl-month">J</span>
-                        <span class="tl-month">F</span>
-                        <span class="tl-month">M</span>
-                        <span class="tl-month">A</span>
-                        <span class="tl-month">M</span>
-                        <span class="tl-month">J</span>
-                        <span class="tl-month">J</span>
-                        <span class="tl-month">A</span>
-                        <span class="tl-month">S</span>
-                        <span class="tl-month">O</span>
-                        <span class="tl-month">N</span>
-                        <span class="tl-month">D</span>
+                        <span class="tl-month">J</span><span class="tl-month">F</span>
+                        <span class="tl-month">M</span><span class="tl-month">A</span>
+                        <span class="tl-month">M</span><span class="tl-month">J</span>
+                        <span class="tl-month">J</span><span class="tl-month">A</span>
+                        <span class="tl-month">S</span><span class="tl-month">O</span>
+                        <span class="tl-month">N</span><span class="tl-month">D</span>
                     </div>
                 </div>
             </div>
         </section>
 
         <!-- ═══ Map ═══ -->
-        <section class="map-section">
+        <section class="map-section reveal">
             {{ map_div | safe }}
         </section>
 
-        <!-- ═══ Trip Stamps ═══ -->
-        <section class="stamps-section">
-            <div class="section-label">Trips</div>
-
+        <!-- ═══ Trip Feed ═══ -->
+        <section class="feed">
             {% for group in year_groups %}
-            <div class="year-group">
-                <div class="year-group-header">
-                    <span class="yg-title">{{ group.year }}</span>
-                    <span class="yg-count">{{ group.stamps | length }} trips</span>
-                </div>
-                <div class="stamps-grid">
-                    {% for s in group.stamps %}
-                    <div class="stamp {% if s.is_multi_country %}multi{% endif %}"
-                         id="stamp-{{ s.id }}"
-                         onclick="toggleStamp(this)">
+            <div class="year-header">
+                <span class="yh-year">{{ group.year }}</span>
+                <span class="yh-count">{{ group.stamps | length }} trips</span>
+                <span class="yh-line"></span>
+            </div>
+            {% if group.narrative %}
+            <div class="year-narrative reveal">{{ group.narrative }}</div>
+            {% endif %}
+            <div class="year-cards">
+                {% for s in group.stamps %}
+                <div class="trip-card reveal"
+                     id="stamp-{{ s.id }}"
+                     onclick="toggleCard(this)">
+                    <div class="card-head">
                         {% if s.cc %}
-                        <div class="stamp-flag">{{ s.cc | country_flag }}</div>
+                        <div class="card-flag">{{ s.cc | country_flag }}</div>
                         {% endif %}
-                        <div class="stamp-dest">{{ s.label }}</div>
-                        <div class="stamp-when">
-                            {{ s.date_range }}
-                            <span class="stamp-dur">{{ s.duration }}d</span>
+                        <div class="card-info">
+                            <div class="card-dest">{{ s.label }}</div>
+                            <div class="card-meta">
+                                <span class="card-when">{{ s.date_range }}</span>
+                                <span class="card-dur">{{ s.duration }}d</span>
+                            </div>
+                            {% if s.tagline %}
+                            <div class="card-tagline">{{ s.tagline }}</div>
+                            {% endif %}
                         </div>
+                        <svg class="card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
 
-                        <!-- Expanded details -->
-                        <div class="stamp-details">
+                    <!-- Expanded details -->
+                    <div class="card-details">
+                        <div class="card-details-inner">
+                            {% if s.narrative %}
+                            <div class="card-narrative">{{ s.narrative }}</div>
+                            {% endif %}
                             {% if s.stops | length > 1 %}
-                            <ul class="stamp-stops">
+                            <ul class="stops-list">
                                 {% for stop in s.stops %}
-                                <li>
-                                    <div class="stamp-stop">
-                                        <span class="stamp-stop-dot"></span>
-                                        <span class="stamp-stop-city">{{ stop.city }}{% if stop.country != s.country %}, {{ stop.country }}{% endif %}</span>
-                                        <span class="stamp-stop-meta">{{ stop.days }}d</span>
+                                <li class="stop-item">
+                                    <div class="stop-head">
+                                        <span class="stop-city">{{ stop.city }}{% if stop.country != s.country %}, {{ stop.country }}{% endif %}</span>
+                                        <span class="stop-days">{{ stop.days }}d</span>
                                     </div>
                                     {% if stop.districts %}
-                                    <div class="stamp-stop-districts">{{ stop.districts }}</div>
+                                    <div class="stop-districts">{{ stop.districts }}</div>
                                     {% endif %}
                                 </li>
                                 {% endfor %}
                             </ul>
                             {% elif s.stops | length == 1 and s.stops[0].districts %}
-                            <div class="stamp-stop-districts" style="padding-left: 0;">
-                                {{ s.stops[0].districts }}
-                            </div>
+                            <div class="stop-districts">{{ s.stops[0].districts }}</div>
                             {% endif %}
                         </div>
                     </div>
-                    {% endfor %}
                 </div>
+                {% endfor %}
             </div>
             {% endfor %}
         </section>
 
-        <footer>
-            Generated from macOS Photos Library
-        </footer>
+        <footer>Generated from macOS Photos Library</footer>
+    </div>
+
+    <!-- ═══ Chat FAB ═══ -->
+    <button class="chat-fab" id="chatFab" onclick="toggleChat()" aria-label="Chat about your travels">
+        <svg class="icon-chat" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z"/><path d="M7 9h10v2H7zm0-3h10v2H7z"/></svg>
+        <svg class="icon-close" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </button>
+
+    <!-- ═══ Chat Bottom Sheet ═══ -->
+    <div class="chat-backdrop" id="chatBackdrop" onclick="toggleChat()"></div>
+    <div class="chat-sheet" id="chatSheet">
+        <div class="sheet-handle"><div class="sheet-handle-bar"></div></div>
+        <div class="sheet-header">
+            <span class="sheet-title">Travel Chat</span>
+            <button class="sheet-close" onclick="toggleChat()" aria-label="Close chat">&times;</button>
+        </div>
+        <div class="chat-messages" id="chatMessages"></div>
+        <div class="chat-input-bar">
+            <input type="text" class="chat-input" id="chatInput"
+                   placeholder="Ask about your travels..."
+                   onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}">
+            <button class="chat-send" id="chatSend" onclick="sendMessage()" aria-label="Send message">
+                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+        </div>
     </div>
 
     <script>
-        function toggleStamp(el) {
-            // Close other expanded stamps in same grid
-            const grid = el.closest('.stamps-grid');
-            grid.querySelectorAll('.stamp.expanded').forEach(s => {
-                if (s !== el) s.classList.remove('expanded');
+    /* ═══════════════════════════════════════════════
+       SCROLL REVEAL (IntersectionObserver + stagger)
+       ═══════════════════════════════════════════════ */
+    (function() {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const delay = parseInt(entry.target.dataset.delay || 0, 10);
+                    setTimeout(() => entry.target.classList.add('visible'), delay);
+                    observer.unobserve(entry.target);
+                }
             });
-            el.classList.toggle('expanded');
+        }, { threshold: 0.06, rootMargin: '0px 0px -30px 0px' });
+
+        document.querySelectorAll('.reveal').forEach((el) => {
+            if (el.classList.contains('trip-card')) {
+                const cards = el.closest('.year-cards');
+                if (cards) {
+                    const siblings = Array.from(cards.querySelectorAll('.trip-card'));
+                    el.dataset.delay = siblings.indexOf(el) * 70;
+                }
+            }
+            observer.observe(el);
+        });
+    })();
+
+    /* ═══════════════════════════════════════════════
+       TRIP CARD INTERACTIONS
+       ═══════════════════════════════════════════════ */
+    function toggleCard(el) {
+        const group = el.closest('.year-cards');
+        if (group) {
+            group.querySelectorAll('.trip-card.expanded').forEach(c => {
+                if (c !== el) c.classList.remove('expanded');
+            });
+        }
+        el.classList.toggle('expanded');
+    }
+
+    function scrollToStamp(tripId) {
+        const card = document.getElementById('stamp-' + tripId);
+        if (!card) return;
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('expanded');
+        card.style.borderColor = 'rgba(77, 217, 192, 0.3)';
+        setTimeout(() => { card.style.borderColor = ''; }, 2000);
+    }
+
+    /* ═══════════════════════════════════════════════
+       LIGHTWEIGHT MARKDOWN → HTML
+       ═══════════════════════════════════════════════ */
+    function renderMarkdown(text) {
+        // Escape HTML
+        let s = text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        // Bold: **text**
+        s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+        // Inline code: `text`
+        s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+        // Split into lines for block-level processing
+        const lines = s.split('\n');
+        let html = '';
+        let inList = false;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const listMatch = line.match(/^[\s]*[-–•]\s+(.+)/);
+
+            if (listMatch) {
+                if (!inList) { html += '<ul>'; inList = true; }
+                html += '<li>' + listMatch[1] + '</li>';
+            } else {
+                if (inList) { html += '</ul>'; inList = false; }
+                const trimmed = line.trim();
+                if (trimmed === '') {
+                    // Blank line = paragraph break (skip consecutive)
+                    if (html && !html.endsWith('<br>')) html += '<br>';
+                } else {
+                    html += trimmed + '<br>';
+                }
+            }
+        }
+        if (inList) html += '</ul>';
+
+        // Clean up trailing <br>
+        html = html.replace(/(<br>)+$/, '');
+
+        return html;
+    }
+
+    /* ═══════════════════════════════════════════════
+       CHAT — BOTTOM SHEET + STREAMING
+       ═══════════════════════════════════════════════ */
+    (function() {
+        let chatOpen = false;
+        let chatHistory = [];
+        let isStreaming = false;
+        let serverAvailable = false;
+
+        const fab = document.getElementById('chatFab');
+        const backdrop = document.getElementById('chatBackdrop');
+        const sheet = document.getElementById('chatSheet');
+        const messagesEl = document.getElementById('chatMessages');
+        const inputEl = document.getElementById('chatInput');
+        const sendBtn = document.getElementById('chatSend');
+
+        window.toggleChat = function() {
+            chatOpen = !chatOpen;
+            sheet.classList.toggle('open', chatOpen);
+            backdrop.classList.toggle('open', chatOpen);
+            fab.classList.toggle('active', chatOpen);
+            if (chatOpen) {
+                inputEl.focus();
+                scrollToBottom();
+                document.body.style.overflow = 'hidden';
+            } else {
+                document.body.style.overflow = '';
+            }
+        };
+
+        window.sendMessage = function() {
+            if (isStreaming) return;
+            const text = inputEl.value.trim();
+            if (!text) return;
+
+            if (!serverAvailable) {
+                addMessage('system', 'Chat requires the server. Run: python server.py');
+                return;
+            }
+
+            inputEl.value = '';
+            addMessage('user', text);
+            streamResponse(text);
+        };
+
+        function addMessage(role, text) {
+            const msg = document.createElement('div');
+            msg.className = 'chat-msg ' + role;
+            msg.textContent = text;
+            messagesEl.appendChild(msg);
+            scrollToBottom();
+            return msg;
         }
 
-        function scrollToStamp(tripId) {
-            const stamp = document.getElementById('stamp-' + tripId);
-            if (!stamp) return;
-            stamp.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // Flash highlight
-            stamp.style.borderColor = 'var(--accent)';
-            stamp.classList.add('expanded');
-            setTimeout(() => {
-                stamp.style.borderColor = '';
-            }, 1500);
+        function scrollToBottom() {
+            messagesEl.scrollTop = messagesEl.scrollHeight;
         }
+
+        async function streamResponse(userText) {
+            isStreaming = true;
+            sendBtn.disabled = true;
+
+            const msgEl = document.createElement('div');
+            msgEl.className = 'chat-msg assistant';
+            msgEl.innerHTML = '<span class="typing-cursor"></span>';
+            messagesEl.appendChild(msgEl);
+            scrollToBottom();
+
+            let fullText = '';
+
+            try {
+                const resp = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: userText, history: chatHistory })
+                });
+
+                if (!resp.ok) throw new Error('Server error: ' + resp.status);
+
+                const reader = resp.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            if (data.error) {
+                                msgEl.textContent = 'Error: ' + data.error;
+                                isStreaming = false;
+                                sendBtn.disabled = false;
+                                return;
+                            }
+                            if (data.done) continue;
+                            if (data.text) {
+                                fullText += data.text;
+                                msgEl.textContent = fullText;
+                                const cursor = document.createElement('span');
+                                cursor.className = 'typing-cursor';
+                                msgEl.appendChild(cursor);
+                                scrollToBottom();
+                            }
+                        } catch (e) {}
+                    }
+                }
+
+                msgEl.innerHTML = renderMarkdown(fullText);
+                chatHistory.push({ role: 'user', content: userText });
+                chatHistory.push({ role: 'assistant', content: fullText });
+                if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+
+            } catch (err) {
+                msgEl.textContent = 'Connection error. Is the server running?';
+                msgEl.style.color = 'var(--accent-rose)';
+            }
+
+            isStreaming = false;
+            sendBtn.disabled = false;
+            scrollToBottom();
+        }
+
+        // Detect server
+        fetch('/api/timeline')
+            .then(r => { if (r.ok) return r.json(); throw new Error(); })
+            .then(data => {
+                serverAvailable = true;
+                const s = data.summary || {};
+                addMessage('system',
+                    `${s.total_trips || '?'} trips \u00b7 ${s.countries_visited || '?'} countries \u00b7 Ask me anything!`
+                );
+            })
+            .catch(() => {
+                serverAvailable = false;
+                addMessage('system', 'Chat requires the server.\nRun: python server.py');
+            });
+    })();
     </script>
 </body>
 </html>

@@ -81,12 +81,12 @@ def _build_trip_map(timeline):
     home = timeline["home_base"]
     fig.update_layout(
         map=dict(
-            style="carto-positron",
+            style="carto-darkmatter",
             center=dict(lat=home["center"]["lat"], lon=home["center"]["lon"]),
             zoom=2.5,
         ),
         margin=dict(l=0, r=0, t=0, b=0),
-        height=450,
+        height=380,
         legend=dict(
             orientation="h", yanchor="top", y=0.99, xanchor="left", x=0.01,
             bgcolor="rgba(0,0,0,0.5)", font=dict(color="white"),
@@ -164,6 +164,8 @@ def _build_stamps(timeline):
             "is_multi_country": len(trip["countries"]) > 1,
             "stops": stops,
             "departure": trip["departure_date"],
+            "tagline": trip.get("tagline", ""),
+            "narrative": trip.get("narrative", ""),
         })
 
     return stamps
@@ -213,15 +215,24 @@ def _build_timeline_data(timeline):
     return years_data
 
 
-def _build_year_groups(stamps):
+def _build_year_groups(stamps, timeline=None):
     """Group stamps by year (most recent first) for the stamps grid."""
+    # Build year narrative lookup from timeline
+    year_narratives = {}
+    if timeline:
+        for ys in timeline.get("years", []):
+            year_narratives[ys["year"]] = ys.get("narrative", "")
+
     groups = {}
     for stamp in stamps:
         y = stamp["year"]
         if y not in groups:
             groups[y] = []
         groups[y].append(stamp)
-    return [{"year": y, "stamps": groups[y]} for y in sorted(groups, reverse=True)]
+    return [
+        {"year": y, "stamps": groups[y], "narrative": year_narratives.get(y, "")}
+        for y in sorted(groups, reverse=True)
+    ]
 
 
 def _compute_story_stats(timeline):
@@ -247,7 +258,7 @@ def generate_dashboard(timeline, df, output_path):
 
     map_div = _build_trip_map(timeline)
     stamps = _build_stamps(timeline)
-    year_groups = _build_year_groups(stamps)
+    year_groups = _build_year_groups(stamps, timeline)
     timeline_data = _build_timeline_data(timeline)
     stats = _compute_story_stats(timeline)
 

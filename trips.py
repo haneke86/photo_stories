@@ -18,8 +18,9 @@ import pandas as pd
 # Distance threshold for "home zone" in km
 HOME_RADIUS_KM = 30
 
-# Gap threshold: if no photos for N days during travel, assume trip ended
-TRIP_GAP_DAYS = 5
+# Gap threshold: if no geotagged photos for N days during travel, assume trip ended.
+# Set to 7 because some photos lack GPS data in the DB, creating artificial gaps.
+TRIP_GAP_DAYS = 7
 
 
 def _haversine_km(lat1, lon1, lat2, lon2):
@@ -155,8 +156,8 @@ def _build_trip(photos):
     if current_stop:
         stops.append(_finalize_stop(current_stop))
 
-    # Merge consecutive stops in the same city (e.g., left and came back same trip)
-    stops = _merge_adjacent_stops(stops)
+    # Merge same-city stops within this trip
+    stops = _merge_same_city_stops(stops)
 
     # Trip-level summary
     all_countries = list(dict.fromkeys(s["country"] for s in stops))
@@ -196,20 +197,34 @@ def _finalize_stop(stop):
     }
 
 
-def _merge_adjacent_stops(stops):
-    """Merge consecutive stops in the same city."""
+
+def _merge_same_city_stops(stops):
+    """
+    Merge all stops in the same city within a trip, preserving order.
+
+    Unlike adjacent-only merging, this handles cases like
+    Muğla → Paris → Muğla by consolidating both Muğla stops.
+    The merged stop uses the earliest arrival date and combined days.
+    """
     if not stops:
         return stops
-    merged = [stops[0]]
-    for s in stops[1:]:
-        prev = merged[-1]
-        if s["city"] == prev["city"] and s["country"] == prev["country"]:
-            # Merge into previous
+
+    # Track which city keys we've seen and their index in merged list
+    seen = {}  # (city, country) → index in merged
+    merged = []
+
+    for s in stops:
+        key = (s["city"], s["country"])
+        if key in seen:
+            # Merge into existing stop
+            prev = merged[seen[key]]
             prev["districts"] = sorted(set(prev["districts"] + s["districts"]))
             prev["days"] += s["days"]
             prev["photo_count"] += s["photo_count"]
         else:
+            seen[key] = len(merged)
             merged.append(s)
+
     return merged
 
 

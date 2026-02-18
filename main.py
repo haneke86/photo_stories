@@ -19,6 +19,8 @@ from datetime import datetime
 from extract import extract_photo_data
 from trips import build_timeline, save_timeline_json
 from dashboard import generate_dashboard
+from llm_enrich import enrich_dataframe
+from llm_stories import generate_narratives
 
 
 def main():
@@ -38,6 +40,16 @@ def main():
         "--no-open",
         action="store_true",
         help="Don't auto-open the dashboard in a browser",
+    )
+    parser.add_argument(
+        "--no-llm",
+        action="store_true",
+        help="Skip LLM enrichment and narrative generation (static rules only)",
+    )
+    parser.add_argument(
+        "--no-stories",
+        action="store_true",
+        help="Skip narrative generation (enrichment still runs if --no-llm not set)",
     )
     args = parser.parse_args()
 
@@ -78,9 +90,29 @@ def main():
         print("No geotagged photos found in the last 6 years.")
         return
 
+    # Step 1.5: LLM enrichment (fix city names via Claude)
+    if not args.no_llm:
+        try:
+            print("\nEnriching location data...")
+            df = enrich_dataframe(df)
+        except EnvironmentError as e:
+            print(f"\n  Skipping LLM enrichment: {e}")
+        except Exception as e:
+            print(f"\n  LLM enrichment failed (continuing with static rules): {e}")
+
     # Step 2: Build timeline
     print()
     timeline = build_timeline(df)
+
+    # Step 2.5: LLM narratives (generate trip stories via Claude)
+    if not args.no_llm and not args.no_stories:
+        try:
+            print("\nGenerating trip narratives...")
+            timeline = generate_narratives(timeline)
+        except EnvironmentError as e:
+            print(f"\n  Skipping narratives: {e}")
+        except Exception as e:
+            print(f"\n  Narrative generation failed (continuing without): {e}")
 
     # Step 3: Save timeline JSON
     timestamp = datetime.now().strftime("%Y-%m-%d-%H%M")
