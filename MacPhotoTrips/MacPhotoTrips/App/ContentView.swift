@@ -16,19 +16,53 @@ struct ContentView: View {
                 ProcessingView(viewModel: pipeline)
             case .ready:
                 if let timeline = pipeline.timeline {
-                    let vm = DashboardViewModel(timeline: timeline)
-                    DashboardView(viewModel: vm)
-                        .task {
-                            if let narratives = pipeline.narrativeResult {
-                                vm.mergeNarratives(narratives)
-                            }
-                        }
+                    MainTabView(timeline: timeline, narrativeResult: pipeline.narrativeResult)
                 }
             case .error(let message):
                 ErrorView(message: message, onRetry: pipeline.start)
             }
         }
         .task { pipeline.checkPermission() }
+    }
+}
+
+/// Tab container shown after pipeline completes.
+private struct MainTabView: View {
+    let timeline: Timeline
+    let narrativeResult: NarrativeResult?
+
+    @StateObject private var dashboardVM: DashboardViewModel
+    @StateObject private var chatVM: ChatViewModel
+
+    init(timeline: Timeline, narrativeResult: NarrativeResult?) {
+        self.timeline = timeline
+        self.narrativeResult = narrativeResult
+        _dashboardVM = StateObject(wrappedValue: DashboardViewModel(timeline: timeline))
+        _chatVM = StateObject(wrappedValue: ChatViewModel(timeline: timeline))
+    }
+
+    var body: some View {
+        TabView {
+            NavigationStack {
+                DashboardView(viewModel: dashboardVM)
+            }
+            .tabItem {
+                Label("Trips", systemImage: "globe.europe.africa")
+            }
+
+            NavigationStack {
+                ChatView(viewModel: chatVM)
+            }
+            .tabItem {
+                Label("Chat", systemImage: "bubble.left.and.text.bubble.right")
+            }
+        }
+        .tint(DesignTokens.teal)
+        .task {
+            if let narratives = narrativeResult {
+                dashboardVM.mergeNarratives(narratives)
+            }
+        }
     }
 }
 
