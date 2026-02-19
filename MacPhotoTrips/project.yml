@@ -10,25 +10,23 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     TARGETED_DEVICE_FAMILY: "1,2"
-    INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "MacPhotoTrips needs access to your photo library to detect trips and build your travel timeline."
-    INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "MacPhotoTrips uses your location data from photos to map your travels."
+
+configFiles:
+  Debug: Secrets.xcconfig
+  Release: Secrets.xcconfig
 
 targets:
   MacPhotoTrips:
     type: application
     platform: iOS
     sources:
-      - MacPhotoTrips
+      - path: MacPhotoTrips
+        excludes:
+          - Info.plist
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.macphoto.trips
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_UILaunchScreen_Generation: true
-        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
-        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
-        ANTHROPIC_API_KEY: $(ANTHROPIC_API_KEY)
-    infoPlist:
-      AnthropicAPIKey: $(ANTHROPIC_API_KEY)
+        INFOPLIST_FILE: MacPhotoTrips/Info.plist
     entitlements:
       path: MacPhotoTrips/MacPhotoTrips.entitlements
       properties:
