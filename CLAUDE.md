@@ -18,6 +18,7 @@
 - Project: `MacPhotoTrips/` — Xcode project generated via `xcodegen` from `project.yml`
 - Target: iOS 17+
 - Pipeline: PhotoLibraryService → GeocodingService → TripDetector → TimelineBuilder → DashboardView
+- Story generation: runs independently in MainTabView after dashboard renders (not in pipeline), works with both cached and fresh timelines
 - Geocoding: CLGeocoder with 0.01° coordinate clustering + 1.3s rate limiting + SwiftData cache
 - Algorithm ports: Haversine, HomeDetector, TripDetector, TimelineBuilder, CityNormalizer
 - LLM: AnthropicDirectProvider (URLSession + SSE), StoryService with SHA256 file cache, ChatViewModel with history persistence

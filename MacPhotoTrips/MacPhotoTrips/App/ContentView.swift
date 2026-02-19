@@ -16,7 +16,7 @@ struct ContentView: View {
                 ProcessingView(viewModel: pipeline)
             case .ready:
                 if let timeline = pipeline.timeline {
-                    MainTabView(timeline: timeline, narrativeResult: pipeline.narrativeResult)
+                    MainTabView(timeline: timeline)
                 }
             case .error(let message):
                 ErrorView(message: message, onRetry: pipeline.start)
@@ -29,14 +29,13 @@ struct ContentView: View {
 /// Tab container shown after pipeline completes.
 private struct MainTabView: View {
     let timeline: Timeline
-    let narrativeResult: NarrativeResult?
 
     @StateObject private var dashboardVM: DashboardViewModel
     @StateObject private var chatVM: ChatViewModel
+    @State private var storiesLoading = false
 
-    init(timeline: Timeline, narrativeResult: NarrativeResult?) {
+    init(timeline: Timeline) {
         self.timeline = timeline
-        self.narrativeResult = narrativeResult
         _dashboardVM = StateObject(wrappedValue: DashboardViewModel(timeline: timeline))
         _chatVM = StateObject(wrappedValue: ChatViewModel(timeline: timeline))
     }
@@ -59,9 +58,15 @@ private struct MainTabView: View {
         }
         .tint(DesignTokens.teal)
         .task {
-            if let narratives = narrativeResult {
-                dashboardVM.mergeNarratives(narratives)
+            guard !storiesLoading else { return }
+            storiesLoading = true
+            if let provider = AnthropicDirectProvider() {
+                let storyService = StoryService(provider: provider)
+                if let narratives = await storyService.generateIfNeeded(timeline: timeline) {
+                    dashboardVM.mergeNarratives(narratives)
+                }
             }
+            storiesLoading = false
         }
     }
 }

@@ -21,7 +21,6 @@ final class PipelineViewModel: ObservableObject {
         case detecting = "Detecting trips..."
         case building = "Building timeline..."
         case saving = "Saving..."
-        case stories = "Generating storylines..."
     }
 
     @Published var state: State = .needsPermission
@@ -29,7 +28,6 @@ final class PipelineViewModel: ObservableObject {
     @Published var progress: Double = 0       // 0.0 - 1.0
     @Published var progressDetail: String = ""
     @Published private(set) var timeline: Timeline?
-    @Published private(set) var narrativeResult: NarrativeResult?
 
     private let photoService = PhotoLibraryService()
     private let geocodingService = GeocodingService()
@@ -124,18 +122,6 @@ final class PipelineViewModel: ObservableObject {
                 currentStep = .saving
                 progressDetail = "Saving timeline..."
                 try TimelineStore.save(result)
-
-                // Step 5: Generate narratives (non-blocking)
-                currentStep = .stories
-                progressDetail = "Writing trip stories..."
-
-                if let provider = AnthropicDirectProvider() {
-                    let storyService = StoryService(provider: provider)
-                    let narratives = await storyService.generateIfNeeded(timeline: result)
-                    if let narratives = narratives {
-                        self.narrativeResult = narratives
-                    }
-                }
 
                 timeline = result
                 state = .ready
