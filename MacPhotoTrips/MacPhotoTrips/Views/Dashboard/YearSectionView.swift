@@ -14,7 +14,7 @@ struct YearSectionView: View {
             // Sticky year header
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
-                    Text("\(group.year)")
+                    Text(verbatim: "\(group.year)")
                         .font(.title2.weight(.semibold))
                         .foregroundStyle(.white)
 
@@ -57,7 +57,7 @@ struct TimelineBarView: View {
             VStack(spacing: 6) {
                 ForEach(years) { year in
                     HStack(spacing: 0) {
-                        Text("\(year.year)")
+                        Text(verbatim: "\(year.year)")
                             .font(.caption)
                             .foregroundStyle(DesignTokens.textSecondary)
                             .frame(width: 40, alignment: .trailing)
