@@ -16,7 +16,7 @@ struct ContentView: View {
                 ProcessingView(viewModel: pipeline)
             case .ready:
                 if let timeline = pipeline.timeline {
-                    MainTabView(timeline: timeline)
+                    MainTabView(timeline: timeline, pipeline: pipeline)
                 }
             case .error(let message):
                 ErrorView(message: message, onRetry: pipeline.start)
@@ -26,27 +26,48 @@ struct ContentView: View {
     }
 }
 
-/// Tab container shown after pipeline completes.
+/// Tab container — 5 tabs: Trips, Stories, Map, Stats, Chat.
 private struct MainTabView: View {
     let timeline: Timeline
+    @ObservedObject var pipeline: PipelineViewModel
 
     @StateObject private var dashboardVM: DashboardViewModel
+    @StateObject private var feedVM: StoryFeedViewModel
     @StateObject private var chatVM: ChatViewModel
-    @State private var storiesLoading = false
 
-    init(timeline: Timeline) {
+    init(timeline: Timeline, pipeline: PipelineViewModel) {
         self.timeline = timeline
-        _dashboardVM = StateObject(wrappedValue: DashboardViewModel(timeline: timeline))
+        self.pipeline = pipeline
+        let dvm = DashboardViewModel(timeline: timeline)
+        _dashboardVM = StateObject(wrappedValue: dvm)
+        _feedVM = StateObject(wrappedValue: StoryFeedViewModel(pipeline: pipeline))
         _chatVM = StateObject(wrappedValue: ChatViewModel(timeline: timeline))
     }
 
     var body: some View {
         TabView {
             NavigationStack {
-                DashboardView(viewModel: dashboardVM)
+                TripsTabView(viewModel: dashboardVM)
             }
             .tabItem {
                 Label("Trips", systemImage: "globe.europe.africa")
+            }
+
+            StoryFeedView(feedVM: feedVM, dashboardVM: dashboardVM)
+                .tabItem {
+                    Label("Stories", systemImage: "book.pages")
+                }
+
+            MapTabView(viewModel: dashboardVM)
+                .tabItem {
+                    Label("Map", systemImage: "map")
+                }
+
+            NavigationStack {
+                StatsTabView(viewModel: dashboardVM)
+            }
+            .tabItem {
+                Label("Stats", systemImage: "chart.bar.xaxis")
             }
 
             NavigationStack {
@@ -57,16 +78,16 @@ private struct MainTabView: View {
             }
         }
         .tint(DesignTokens.teal)
-        .task {
-            guard !storiesLoading else { return }
-            storiesLoading = true
-            if let provider = AnthropicDirectProvider() {
-                let storyService = StoryService(provider: provider)
-                if let narratives = await storyService.generateIfNeeded(timeline: timeline) {
-                    dashboardVM.mergeNarratives(narratives)
-                }
-            }
-            storiesLoading = false
+        .onReceive(pipeline.$timeline) { newTimeline in
+            // Silently refresh dashboard when background refinement completes.
+            guard let newTimeline else { return }
+            let oldTrips = dashboardVM.timeline.trips
+            let newTrips = newTimeline.trips
+            let changed = oldTrips.count != newTrips.count
+                || oldTrips.map(\.id) != newTrips.map(\.id)
+                || oldTrips.map(\.cities) != newTrips.map(\.cities)
+            guard changed else { return }
+            dashboardVM.updateTimeline(newTimeline)
         }
     }
 }

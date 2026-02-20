@@ -28,9 +28,16 @@ final class PipelineViewModel: ObservableObject {
     @Published var progress: Double = 0       // 0.0 - 1.0
     @Published var progressDetail: String = ""
     @Published private(set) var timeline: Timeline?
+    @Published var isRefining = false
 
     private let photoService = PhotoLibraryService()
     private let geocodingService = GeocodingService()
+
+    /// Stored records for reuse during background refinement.
+    private var photoRecords: [PhotoRecord] = []
+
+    /// SwiftData cache, created once and shared between coarse and fine passes.
+    private var cache: PhotoCacheStore?
 
     // MARK: - Permission
 
@@ -84,19 +91,20 @@ final class PipelineViewModel: ObservableObject {
                     return
                 }
                 progressDetail = "\(records.count) geotagged photos found"
+                self.photoRecords = records
 
-                // Step 2: Geocode
-                currentStep = .geocoding
-
-                // Get SwiftData container for cache
-                let cache: PhotoCacheStore?
-                if let container = try? ModelContainer(for: CachedGeocode.self) {
+                // Initialize SwiftData cache (shared between coarse and fine passes)
+                if cache == nil, let container = try? ModelContainer(for: CachedGeocode.self) {
                     cache = PhotoCacheStore(modelContainer: container)
-                } else {
-                    cache = nil
                 }
 
-                let geocoded = await geocodingService.geocodePhotos(records, cache: cache) { [weak self] completed, total in
+                // Step 2: Coarse geocode (0.05° grid — ~5x fewer clusters, ~2 min)
+                currentStep = .geocoding
+
+                let geocoded = await geocodingService.geocodePhotos(
+                    records, cache: cache,
+                    resolution: GeocodingService.coarseResolution
+                ) { [weak self] completed, total in
                     Task { @MainActor in
                         self?.progress = Double(completed) / Double(max(total, 1))
                         self?.progressDetail = "Geocoding location \(completed) of \(total)..."
@@ -118,7 +126,7 @@ final class PipelineViewModel: ObservableObject {
 
                 let result = TimelineBuilder.build(from: usable)
 
-                // Step 4: Save
+                // Step 4: Save coarse timeline and show dashboard
                 currentStep = .saving
                 progressDetail = "Saving timeline..."
                 try TimelineStore.save(result)
@@ -126,9 +134,43 @@ final class PipelineViewModel: ObservableObject {
                 timeline = result
                 state = .ready
 
+                // Step 5: Kick off background refinement
+                refineGeocode()
+
             } catch {
                 state = .error(error.localizedDescription)
             }
+        }
+    }
+
+    // MARK: - Background Refinement
+
+    /// Re-geocode with fine grid (0.01°) in the background, then update the timeline.
+    /// Coarse clusters are already cached, so only new fine-grid clusters need API calls.
+    private func refineGeocode() {
+        guard !photoRecords.isEmpty else { return }
+
+        Task {
+            isRefining = true
+
+            let refined = await geocodingService.geocodePhotos(
+                photoRecords, cache: cache,
+                resolution: GeocodingService.fineResolution
+            ) { _, _ in
+                // Silent — no progress UI for refinement
+            }
+
+            let usable = refined.filter { $0.city != "Unknown" && !$0.city.isEmpty }
+            guard !usable.isEmpty else {
+                isRefining = false
+                return
+            }
+
+            let result = TimelineBuilder.build(from: usable)
+            try? TimelineStore.save(result)
+
+            timeline = result
+            isRefining = false
         }
     }
 
@@ -136,6 +178,8 @@ final class PipelineViewModel: ObservableObject {
     func refresh() {
         try? TimelineStore.delete()
         timeline = nil
+        photoRecords = []
+        isRefining = false
         start()
     }
 }

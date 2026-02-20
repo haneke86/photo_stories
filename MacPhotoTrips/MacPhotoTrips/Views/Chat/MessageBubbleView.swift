@@ -12,12 +12,25 @@ struct MessageBubbleView: View {
 
     private var isUser: Bool { message.role == "user" }
 
+    /// Parse markdown in assistant messages; user messages stay plain text.
+    private var renderedContent: Text {
+        let raw = message.content + (isStreaming ? " \u{2588}" : "")
+        if isUser {
+            return Text(raw)
+        }
+        // Convert markdown for assistant responses (bold, italic, lists, etc.)
+        if let attributed = try? AttributedString(markdown: raw, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)) {
+            return Text(attributed)
+        }
+        return Text(raw)
+    }
+
     var body: some View {
         HStack {
             if isUser { Spacer(minLength: 60) }
 
             VStack(alignment: isUser ? .trailing : .leading, spacing: 4) {
-                Text(message.content + (isStreaming ? " \u{2588}" : ""))
+                renderedContent
                     .font(.body)
                     .foregroundStyle(.white)
                     .textSelection(.enabled)

@@ -77,6 +77,35 @@ final class AnthropicDirectProvider: LLMProvider {
         return try JSONDecoder().decode(NarrativeResult.self, from: jsonData)
     }
 
+    // MARK: - Single Story
+
+    func generateSingleStory(systemPrompt: String, userMessage: String) async throws -> StoryResponse {
+        let body: [String: Any] = [
+            "model": narrativeModel,
+            "max_tokens": 1024,
+            "system": systemPrompt,
+            "messages": [["role": "user", "content": userMessage]]
+        ]
+
+        let data = try await makeRequest(body: body)
+        let response = try JSONDecoder().decode(AnthropicResponse.self, from: data)
+
+        guard let text = response.content.first?.text else {
+            throw LLMError.emptyResponse
+        }
+
+        let cleanJSON = text
+            .replacingOccurrences(of: "```json", with: "")
+            .replacingOccurrences(of: "```", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard let jsonData = cleanJSON.data(using: .utf8) else {
+            throw LLMError.invalidJSON
+        }
+
+        return try JSONDecoder().decode(StoryResponse.self, from: jsonData)
+    }
+
     // MARK: - Streaming Chat
 
     func streamChat(messages: [[String: String]], systemPrompt: String) -> AsyncThrowingStream<String, Error> {

@@ -82,7 +82,10 @@ struct LongestTrip: Codable {
     let days: Int
 }
 
-struct Trip: Codable, Identifiable {
+struct Trip: Codable, Identifiable, Hashable {
+    static func == (lhs: Trip, rhs: Trip) -> Bool { lhs.id == rhs.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(id) }
+
     let id: String
     let departureDate: String
     let returnDate: String

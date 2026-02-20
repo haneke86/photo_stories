@@ -11,6 +11,44 @@ final class DashboardViewModel: ObservableObject {
         self.timeline = timeline
     }
 
+    // MARK: - Timeline Updates
+
+    /// Replace the timeline with refined data, preserving any loaded narratives.
+    func updateTimeline(_ newTimeline: Timeline) {
+        // Collect existing narratives before replacing
+        let oldTripNarratives = Dictionary(
+            uniqueKeysWithValues: timeline.trips.compactMap { trip -> (String, (String?, String?))? in
+                guard trip.narrative != nil || trip.tagline != nil else { return nil }
+                return (trip.id, (trip.narrative, trip.tagline))
+            }
+        )
+        let oldYearNarratives = Dictionary(
+            uniqueKeysWithValues: timeline.years.compactMap { year -> (Int, String?)? in
+                guard year.narrative != nil else { return nil }
+                return (year.year, year.narrative)
+            }
+        )
+
+        timeline = newTimeline
+
+        // Re-apply narratives to the new timeline
+        if narrativesLoaded {
+            for i in timeline.trips.indices {
+                if let (narrative, tagline) = oldTripNarratives[timeline.trips[i].id] {
+                    timeline.trips[i].narrative = narrative
+                    timeline.trips[i].tagline = tagline
+                }
+            }
+            for i in timeline.years.indices {
+                if let narrative = oldYearNarratives[timeline.years[i].year] {
+                    timeline.years[i].narrative = narrative
+                }
+            }
+        }
+
+        objectWillChange.send()
+    }
+
     // MARK: - Narratives
 
     @Published var narrativesLoaded = false
@@ -38,6 +76,14 @@ final class DashboardViewModel: ObservableObject {
         }
 
         narrativesLoaded = true
+        objectWillChange.send()
+    }
+
+    /// Set narrative + tagline for a single trip (from on-demand generation).
+    func setTripNarrative(tripId: String, narrative: String, tagline: String) {
+        guard let i = timeline.trips.firstIndex(where: { $0.id == tripId }) else { return }
+        timeline.trips[i].narrative = narrative
+        timeline.trips[i].tagline = tagline
         objectWillChange.send()
     }
 
@@ -110,6 +156,7 @@ final class DashboardViewModel: ObservableObject {
         let city: String
         let country: String
         let days: Int
+        let tripId: String
     }
 
     var allStopAnnotations: [StopAnnotation] {
@@ -123,10 +170,68 @@ final class DashboardViewModel: ObservableObject {
                     ),
                     city: stop.city,
                     country: stop.country,
-                    days: stop.days
+                    days: stop.days,
+                    tripId: trip.id
                 )
             }
         }
+    }
+
+    /// Look up a trip by its ID.
+    func trip(byId id: String) -> Trip? {
+        timeline.trips.first { $0.id == id }
+    }
+
+    // MARK: - Stats Tab Data
+
+    var totalCities: Int { timeline.summary.citiesVisited }
+    var totalPhotos: Int { timeline.trips.reduce(0) { $0 + $1.photoCount } }
+
+    var averageTripDuration: Double {
+        guard !timeline.trips.isEmpty else { return 0 }
+        return Double(totalDays) / Double(timeline.trips.count)
+    }
+
+    /// Top countries sorted by number of trips (descending).
+    var countryFrequency: [(country: String, count: Int)] {
+        var freq: [String: Int] = [:]
+        for trip in timeline.trips {
+            for country in trip.countries {
+                freq[country, default: 0] += 1
+            }
+        }
+        return freq.map { (country: $0.key, count: $0.value) }
+            .sorted { $0.count > $1.count }
+    }
+
+    var longestTrip: Trip? {
+        timeline.trips.max(by: { $0.durationDays < $1.durationDays })
+    }
+
+    var mostVisitedCountry: String? {
+        countryFrequency.first?.country
+    }
+
+    var busiestYear: YearSummary? {
+        timeline.years.max(by: { $0.tripsCount < $1.tripsCount })
+    }
+
+    /// Trips per year, sorted chronologically.
+    var tripsPerYear: [(year: Int, count: Int)] {
+        timeline.years.map { (year: $0.year, count: $0.tripsCount) }
+            .sorted { $0.year < $1.year }
+    }
+
+    /// Days abroad per year, sorted chronologically.
+    var daysPerYear: [(year: Int, days: Int)] {
+        timeline.years.map { (year: $0.year, days: $0.daysAbroad) }
+            .sorted { $0.year < $1.year }
+    }
+
+    /// New countries discovered per year, sorted chronologically.
+    var newCountriesPerYear: [(year: Int, count: Int)] {
+        timeline.years.map { (year: $0.year, count: $0.newCountries.count) }
+            .sorted { $0.year < $1.year }
     }
 
     // MARK: - Timeline Bar Data

@@ -42,10 +42,20 @@ struct ChatMessage: Codable, Identifiable {
     }
 }
 
+/// LLM response for a single story card.
+struct StoryResponse: Codable {
+    let title: String
+    let tagline: String
+    let narrative: String
+}
+
 /// Protocol for LLM providers — swappable from direct API to backend proxy.
 protocol LLMProvider {
     /// Generate trip narratives + taglines and year narratives.
     func generateNarratives(compactTimeline: [String: Any]) async throws -> NarrativeResult
+
+    /// Generate a single story card from a prompt.
+    func generateSingleStory(systemPrompt: String, userMessage: String) async throws -> StoryResponse
 
     /// Stream a chat response token by token.
     func streamChat(messages: [[String: String]], systemPrompt: String) -> AsyncThrowingStream<String, Error>
