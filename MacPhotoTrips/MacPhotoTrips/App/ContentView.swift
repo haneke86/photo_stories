@@ -1,11 +1,29 @@
 import SwiftUI
 import Photos
 
-/// Root view: permission gate → processing → dashboard.
+/// Root view: onboarding gate → auth gate → permission gate → processing → dashboard.
 struct ContentView: View {
+    @StateObject private var authVM = AuthViewModel()
     @StateObject private var pipeline = PipelineViewModel()
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     var body: some View {
+        Group {
+            if !hasCompletedOnboarding {
+                OnboardingCarouselView(
+                    authVM: authVM,
+                    hasCompletedOnboarding: $hasCompletedOnboarding
+                )
+            } else if !authVM.isAuthenticated {
+                LoginView(authVM: authVM)
+            } else {
+                authenticatedContent
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var authenticatedContent: some View {
         Group {
             switch pipeline.state {
             case .needsPermission:
@@ -16,7 +34,11 @@ struct ContentView: View {
                 ProcessingView(viewModel: pipeline)
             case .ready:
                 if let timeline = pipeline.timeline {
-                    MainTabView(timeline: timeline, pipeline: pipeline)
+                    MainTabView(
+                        timeline: timeline,
+                        pipeline: pipeline,
+                        authService: authVM.authService
+                    )
                 }
             case .error(let message):
                 ErrorView(message: message, onRetry: pipeline.start)
@@ -30,18 +52,21 @@ struct ContentView: View {
 private struct MainTabView: View {
     let timeline: Timeline
     @ObservedObject var pipeline: PipelineViewModel
+    let authService: AuthService
 
     @StateObject private var dashboardVM: DashboardViewModel
     @StateObject private var feedVM: StoryFeedViewModel
     @StateObject private var chatVM: ChatViewModel
 
-    init(timeline: Timeline, pipeline: PipelineViewModel) {
+    init(timeline: Timeline, pipeline: PipelineViewModel, authService: AuthService) {
         self.timeline = timeline
         self.pipeline = pipeline
+        self.authService = authService
+        let provider = BackendProvider(authService: authService)
         let dvm = DashboardViewModel(timeline: timeline)
         _dashboardVM = StateObject(wrappedValue: dvm)
-        _feedVM = StateObject(wrappedValue: StoryFeedViewModel(pipeline: pipeline))
-        _chatVM = StateObject(wrappedValue: ChatViewModel(timeline: timeline))
+        _feedVM = StateObject(wrappedValue: StoryFeedViewModel(pipeline: pipeline, provider: provider))
+        _chatVM = StateObject(wrappedValue: ChatViewModel(timeline: timeline, provider: provider))
     }
 
     var body: some View {

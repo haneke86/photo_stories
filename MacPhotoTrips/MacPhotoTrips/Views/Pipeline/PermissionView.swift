@@ -47,9 +47,18 @@ struct PermissionView: View {
             .tint(DesignTokens.teal)
             .padding(.horizontal, 32)
 
-            Text("Your photos never leave your device.")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
+            VStack(spacing: 4) {
+                Text("We only read the ")
+                    + Text("where").fontWeight(.semibold)
+                    + Text(" and ")
+                    + Text("when").fontWeight(.semibold)
+                    + Text(" of your photos — never the content.")
+                Text("Your photos and media never leave your device.")
+            }
+            .font(.caption)
+            .multilineTextAlignment(.center)
+            .foregroundStyle(.tertiary)
+            .padding(.horizontal, 32)
 
             Spacer().frame(height: 32)
         }
