@@ -37,7 +37,7 @@ struct ContentView: View {
                     MainTabView(
                         timeline: timeline,
                         pipeline: pipeline,
-                        authService: authVM.authService
+                        authVM: authVM
                     )
                 }
             case .error(let message):
@@ -48,34 +48,36 @@ struct ContentView: View {
     }
 }
 
-/// Tab container — 5 tabs: Trips, Stories, Map, Stats, Chat.
+/// Tab container — 5 tabs: Explore, Stories, Insights, Chat, Settings.
 private struct MainTabView: View {
     let timeline: Timeline
     @ObservedObject var pipeline: PipelineViewModel
-    let authService: AuthService
+    @ObservedObject var authVM: AuthViewModel
 
     @StateObject private var dashboardVM: DashboardViewModel
     @StateObject private var feedVM: StoryFeedViewModel
     @StateObject private var chatVM: ChatViewModel
+    @StateObject private var settingsVM: SettingsViewModel
 
-    init(timeline: Timeline, pipeline: PipelineViewModel, authService: AuthService) {
+    init(timeline: Timeline, pipeline: PipelineViewModel, authVM: AuthViewModel) {
         self.timeline = timeline
         self.pipeline = pipeline
-        self.authService = authService
-        let provider = BackendProvider(authService: authService)
+        self.authVM = authVM
+        let provider = BackendProvider(authService: authVM.authService)
         let dvm = DashboardViewModel(timeline: timeline)
         _dashboardVM = StateObject(wrappedValue: dvm)
         _feedVM = StateObject(wrappedValue: StoryFeedViewModel(pipeline: pipeline, provider: provider))
         _chatVM = StateObject(wrappedValue: ChatViewModel(timeline: timeline, provider: provider))
+        _settingsVM = StateObject(wrappedValue: SettingsViewModel(provider: provider, authService: authVM.authService))
     }
 
     var body: some View {
         TabView {
             NavigationStack {
-                TripsTabView(viewModel: dashboardVM)
+                ExploreTabView(viewModel: dashboardVM, pipeline: pipeline)
             }
             .tabItem {
-                Label("Trips", systemImage: "globe.europe.africa")
+                Label("Explore", systemImage: "globe.europe.africa")
             }
 
             StoryFeedView(feedVM: feedVM, dashboardVM: dashboardVM)
@@ -83,16 +85,11 @@ private struct MainTabView: View {
                     Label("Stories", systemImage: "book.pages")
                 }
 
-            MapTabView(viewModel: dashboardVM)
-                .tabItem {
-                    Label("Map", systemImage: "map")
-                }
-
             NavigationStack {
                 StatsTabView(viewModel: dashboardVM)
             }
             .tabItem {
-                Label("Stats", systemImage: "chart.bar.xaxis")
+                Label("Insights", systemImage: "chart.bar.xaxis")
             }
 
             NavigationStack {
@@ -101,10 +98,16 @@ private struct MainTabView: View {
             .tabItem {
                 Label("Chat", systemImage: "bubble.left.and.text.bubble.right")
             }
+
+            NavigationStack {
+                SettingsView(authVM: authVM, settingsVM: settingsVM)
+            }
+            .tabItem {
+                Label("Settings", systemImage: "gearshape")
+            }
         }
         .tint(DesignTokens.teal)
         .onReceive(pipeline.$timeline) { newTimeline in
-            // Silently refresh dashboard when background refinement completes.
             guard let newTimeline else { return }
             let oldTrips = dashboardVM.timeline.trips
             let newTrips = newTimeline.trips
