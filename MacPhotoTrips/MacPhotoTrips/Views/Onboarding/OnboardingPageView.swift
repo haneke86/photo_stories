@@ -1,11 +1,13 @@
 import SwiftUI
 
 /// Reusable onboarding page with icon, headline, body, and bullet points.
+/// Optionally displays a background image layered behind the content.
 struct OnboardingPageView: View {
     let icon: String
     let headline: String
     let bodyText: String
     let bullets: [(icon: String, text: String)]
+    var backgroundImage: String? = nil
 
     var body: some View {
         VStack(spacing: 24) {
@@ -42,6 +44,65 @@ struct OnboardingPageView: View {
 
             Spacer()
             Spacer()
+        }
+        .background {
+            OnboardingImageBackground(imageName: backgroundImage)
+        }
+    }
+}
+
+// MARK: - Background Image Layer
+
+/// Layered background for onboarding pages: photo image at reduced opacity
+/// with a radial gradient overlay to keep the center dark for text legibility.
+/// Gracefully shows nothing if the image asset is missing.
+struct OnboardingImageBackground: View {
+    let imageName: String?
+
+    var body: some View {
+        if let name = imageName, UIImage(named: name) != nil {
+            GeometryReader { geo in
+                ZStack {
+                    Image(name)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .clipped()
+                        .opacity(0.4)
+
+                    // Radial gradient: dark center for text, lighter edges for image detail
+                    RadialGradient(
+                        colors: [
+                            DesignTokens.bg.opacity(0.85),
+                            DesignTokens.bg.opacity(0.4),
+                            DesignTokens.bg.opacity(0.6),
+                        ],
+                        center: .center,
+                        startRadius: 20,
+                        endRadius: UIScreen.main.bounds.height * 0.5
+                    )
+
+                    // Top & bottom edge fade to base color
+                    VStack(spacing: 0) {
+                        LinearGradient(
+                            colors: [DesignTokens.bg, .clear],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: geo.size.height * 0.15)
+
+                        Spacer()
+
+                        LinearGradient(
+                            colors: [.clear, DesignTokens.bg],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: geo.size.height * 0.2)
+                    }
+                }
+            }
+            .ignoresSafeArea()
         }
     }
 }

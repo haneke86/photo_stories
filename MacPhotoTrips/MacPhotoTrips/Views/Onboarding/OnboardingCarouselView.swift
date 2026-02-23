@@ -21,7 +21,8 @@ struct OnboardingCarouselView: View {
                             ("map.fill", "Auto-detect trips from geotagged photos"),
                             ("mappin.and.ellipse", "Identify cities and countries visited"),
                             ("chart.bar.fill", "Year-by-year travel statistics"),
-                        ]
+                        ],
+                        backgroundImage: "onboarding_timeline"
                     )
                     .tag(0)
 
@@ -34,16 +35,19 @@ struct OnboardingCarouselView: View {
                             ("text.book.closed.fill", "Generated stories for each trip"),
                             ("bubble.left.and.text.bubble.right.fill", "Chat with your travel history"),
                             ("globe.desk.fill", "Interactive map of everywhere you've been"),
-                        ]
+                        ],
+                        backgroundImage: "onboarding_stories"
                     )
                     .tag(1)
 
                     // Page 3: Privacy
                     privacyPage
+                        .background { OnboardingImageBackground(imageName: "onboarding_privacy") }
                         .tag(2)
 
                     // Page 4: Sign In
                     signInPage
+                        .background { OnboardingImageBackground(imageName: "onboarding_getstarted") }
                         .tag(3)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .always))

@@ -75,6 +75,7 @@ struct ChatView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .task { await viewModel.refreshUsage() }
     }
 
     // MARK: - Empty State
@@ -92,10 +93,19 @@ struct ChatView: View {
                 .foregroundStyle(.white)
 
             if !viewModel.isAvailable {
-                Text("No API key configured. Set ANTHROPIC_API_KEY before building.")
+                Text("Sign in to chat about your travels.")
                     .font(.caption)
                     .foregroundStyle(.orange)
                     .multilineTextAlignment(.center)
+            } else if viewModel.isAtChatLimit {
+                Text("Monthly chat limit reached")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.orange)
+                if let info = viewModel.usageInfo {
+                    Text("Resets \(info.resetsAt)")
+                        .font(.caption2)
+                        .foregroundStyle(DesignTokens.textTertiary)
+                }
             } else {
                 VStack(spacing: 8) {
                     ForEach(viewModel.suggestions, id: \.self) { suggestion in
@@ -124,8 +134,19 @@ struct ChatView: View {
     // MARK: - Input Bar
 
     private var inputBar: some View {
-        HStack(spacing: 12) {
-            TextField("Message...", text: $viewModel.inputText, axis: .vertical)
+        VStack(spacing: 4) {
+            if let remaining = viewModel.remainingChatsText {
+                Text(remaining)
+                    .font(.caption2)
+                    .foregroundStyle(DesignTokens.textTertiary)
+            }
+
+            HStack(spacing: 12) {
+                TextField(
+                    viewModel.isAtChatLimit ? "Limit reached" : "Message...",
+                    text: $viewModel.inputText,
+                    axis: .vertical
+                )
                 .textFieldStyle(.plain)
                 .foregroundStyle(.white)
                 .padding(.horizontal, 14)
@@ -138,20 +159,28 @@ struct ChatView: View {
                         .stroke(DesignTokens.glassBorder, lineWidth: 1)
                 )
                 .lineLimit(1...5)
+                .disabled(viewModel.isAtChatLimit)
                 .onSubmit { viewModel.send() }
 
-            Button {
-                viewModel.send()
-            } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(
-                        viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isStreaming
-                            ? DesignTokens.textTertiary
-                            : DesignTokens.teal
-                    )
+                Button {
+                    viewModel.send()
+                } label: {
+                    Image(systemName: "arrow.up.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(
+                            viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                || viewModel.isStreaming
+                                || viewModel.isAtChatLimit
+                                ? DesignTokens.textTertiary
+                                : DesignTokens.teal
+                        )
+                }
+                .disabled(
+                    viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || viewModel.isStreaming
+                        || viewModel.isAtChatLimit
+                )
             }
-            .disabled(viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isStreaming)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)

@@ -41,5 +41,13 @@
 	</array>
 	<key>AnthropicAPIKey</key>
 	<string>$(ANTHROPIC_API_KEY)</string>
+	<key>MacPhotoApiHost</key>
+	<string>$(MACPHOTO_API_HOST)</string>
+	<key>MacPhotoChatHost</key>
+	<string>$(MACPHOTO_CHAT_HOST)</string>
+	<key>CognitoUserPoolId</key>
+	<string>$(COGNITO_USER_POOL_ID)</string>
+	<key>CognitoClientId</key>
+	<string>$(COGNITO_CLIENT_ID)</string>
 </dict>
 </plist>

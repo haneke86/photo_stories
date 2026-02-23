@@ -32,3 +32,5 @@ targets:
       properties:
         com.apple.security.app-sandbox: true
         com.apple.security.personal-information.photos-library: true
+        com.apple.developer.applesignin:
+          - Default

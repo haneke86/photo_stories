@@ -29,3 +29,28 @@
 - Design doc: `docs/plans/2026-02-15-travel-timeline-design.md`
 - iOS test photos: `MacPhotoTrips/test_photos/` (28 geotagged JPEGs, push with `xcrun simctl addmedia booted *.jpg`)
 - Regenerate Xcode project: `cd MacPhotoTrips && xcodegen generate`
+
+## Memory
+- Auto-memory: `~/.claude/projects/-Users-oberk-macphoto/memory/MEMORY.md` (persists across sessions)
+
+## Available Plugins & MCP Capabilities
+
+### Plugins
+- **superpowers** — Skills framework: brainstorming, TDD, debugging, planning, code review, parallel agents, git worktrees, verification
+- **code-review** — `/code-review` PR review
+- **code-simplifier** — Simplify/refine code for clarity
+- **hookify** — Create hooks to prevent unwanted behaviors
+- **pr-review-toolkit** — `/review-pr` comprehensive PR review with specialized agents
+- **episodic-memory** — Cross-session memory: search past conversations
+- **feature-dev** — `/feature-dev` guided feature development with architecture focus
+- **ralph-loop** — `/ralph-loop` iterative development loop
+- **claude-md-management** — `/revise-claude-md` update CLAUDE.md; `/claude-md-improver` audit quality
+- **explanatory-output-style** — Educational insights mode
+
+### MCP Servers
+- **postgres** — Read-only SQL queries
+- **chrome-devtools** — Browser DevTools automation (screenshots, snapshots, click, navigate, console, network, performance)
+- **Playwright (MCP_DOCKER)** — Full browser automation (navigate, click, type, screenshot, forms, tabs)
+- **Firecrawl** — Web scraping, crawling, search, structured extraction, autonomous agent research, browser sessions
+- **Context7 (MCP_DOCKER)** — `resolve-library-id` + `get-library-docs` for up-to-date library documentation
+- **MCP Gateway** — `mcp-find`/`mcp-add` to discover and enable new MCP servers dynamically

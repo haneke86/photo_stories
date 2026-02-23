@@ -212,6 +212,7 @@ enum LLMError: LocalizedError {
     case invalidJSON
     case httpError(Int, String = "")
     case noAPIKey
+    case rateLimited
 
     var errorDescription: String? {
         switch self {
@@ -219,6 +220,7 @@ enum LLMError: LocalizedError {
         case .invalidJSON: return "Invalid JSON in Claude response"
         case .httpError(let code, let body): return "HTTP \(code): \(body)"
         case .noAPIKey: return "No Anthropic API key configured"
+        case .rateLimited: return "Monthly usage limit reached"
         }
     }
 }

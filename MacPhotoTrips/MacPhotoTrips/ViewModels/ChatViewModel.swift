@@ -8,6 +8,7 @@ final class ChatViewModel: ObservableObject {
     @Published var inputText = ""
     @Published var isStreaming = false
     @Published var streamingText = ""
+    @Published var usageInfo: UsageInfo?
 
     private let provider: LLMProvider?
     private let systemPrompt: String
@@ -19,18 +20,35 @@ final class ChatViewModel: ObservableObject {
         "Compare my summer trips",
     ]
 
-    init(timeline: Timeline) {
-        self.provider = AnthropicDirectProvider()
+    init(timeline: Timeline, provider: LLMProvider? = nil) {
+        self.provider = provider ?? AnthropicDirectProvider()
         self.systemPrompt = Self.buildSystemPrompt(timeline: timeline)
         self.messages = ChatHistoryStore.load()
     }
 
     var isAvailable: Bool { provider?.isAvailable ?? false }
 
+    /// Whether the chat limit has been reached.
+    var isAtChatLimit: Bool {
+        usageInfo?.chats.isAtLimit ?? false
+    }
+
+    /// Human-readable remaining chats text.
+    var remainingChatsText: String? {
+        guard let info = usageInfo else { return nil }
+        return "\(info.chats.remaining) of \(info.chats.limit) messages remaining"
+    }
+
+    /// Fetch current usage from the backend.
+    func refreshUsage() async {
+        guard let backend = provider as? BackendProvider else { return }
+        usageInfo = try? await backend.fetchUsage()
+    }
+
     /// Send a message and stream the response.
     func send() {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty, !isStreaming else { return }
+        guard !text.isEmpty, !isStreaming, !isAtChatLimit else { return }
 
         inputText = ""
         let userMessage = ChatMessage(role: "user", content: text)
@@ -75,8 +93,11 @@ final class ChatViewModel: ObservableObject {
             messages.append(assistantMessage)
             streamingText = ""
             ChatHistoryStore.save(messages)
+        } catch LLMError.rateLimited {
+            let errorMessage = ChatMessage(role: "assistant", content: "You've reached your monthly chat limit. It resets on the 1st of next month.")
+            messages.append(errorMessage)
+            await refreshUsage()
         } catch {
-            // On error, add error message
             let errorMessage = ChatMessage(role: "assistant", content: "Sorry, I encountered an error: \(error.localizedDescription)")
             messages.append(errorMessage)
         }
