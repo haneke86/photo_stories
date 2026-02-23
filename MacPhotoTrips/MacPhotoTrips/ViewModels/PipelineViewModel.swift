@@ -36,6 +36,14 @@ final class PipelineViewModel: ObservableObject {
     /// Stored records for reuse during background refinement.
     private var photoRecords: [PhotoRecord] = []
 
+    /// Timestamp of the last successful photo fetch, for incremental refresh.
+    private static let lastFetchDateKey = "lastPhotoFetchDate"
+
+    private var lastFetchDate: Date? {
+        get { UserDefaults.standard.object(forKey: Self.lastFetchDateKey) as? Date }
+        set { UserDefaults.standard.set(newValue, forKey: Self.lastFetchDateKey) }
+    }
+
     /// SwiftData cache, created once and shared between coarse and fine passes.
     private var cache: PhotoCacheStore?
 
@@ -81,6 +89,8 @@ final class PipelineViewModel: ObservableObject {
 
         Task {
             do {
+                let fetchStart = Date()
+
                 // Step 1: Fetch photos
                 currentStep = .fetching
                 progressDetail = "Scanning photo library..."
@@ -133,6 +143,7 @@ final class PipelineViewModel: ObservableObject {
 
                 timeline = result
                 state = .ready
+                self.lastFetchDate = fetchStart
 
                 // Step 5: Kick off background refinement
                 refineGeocode()
@@ -181,5 +192,61 @@ final class PipelineViewModel: ObservableObject {
         photoRecords = []
         isRefining = false
         start()
+    }
+
+    /// Scan only photos added since the last fetch and merge into existing timeline.
+    /// Called by pull-to-refresh on the Explore tab.
+    func incrementalRefresh() async {
+        guard let since = lastFetchDate else {
+            // No previous fetch date — fall back to full refresh
+            start()
+            return
+        }
+
+        let fetchStart = Date()
+        let newRecords = await photoService.fetchGeotaggedPhotos(since: since)
+
+        guard !newRecords.isEmpty else {
+            // No new photos — nothing to do
+            return
+        }
+
+        // Initialize cache if needed
+        if cache == nil, let container = try? ModelContainer(for: CachedGeocode.self) {
+            cache = PhotoCacheStore(modelContainer: container)
+        }
+
+        // Geocode new photos only
+        let geocoded = await geocodingService.geocodePhotos(
+            newRecords, cache: cache,
+            resolution: GeocodingService.fineResolution
+        ) { _, _ in }
+
+        let usableNew = geocoded.filter { $0.city != "Unknown" && !$0.city.isEmpty }
+        guard !usableNew.isEmpty else {
+            self.lastFetchDate = fetchStart
+            return
+        }
+
+        // Merge with existing records
+        let existingIds = Set(photoRecords.map(\.id))
+        let deduped = usableNew.filter { !existingIds.contains($0.id) }
+        photoRecords.append(contentsOf: deduped)
+
+        // Re-geocode all existing records too (cache will serve them instantly)
+        let allGeocoded = await geocodingService.geocodePhotos(
+            photoRecords, cache: cache,
+            resolution: GeocodingService.fineResolution
+        ) { _, _ in }
+
+        let allUsable = allGeocoded.filter { $0.city != "Unknown" && !$0.city.isEmpty }
+        guard !allUsable.isEmpty else { return }
+
+        // Rebuild timeline
+        let result = TimelineBuilder.build(from: allUsable)
+        try? TimelineStore.save(result)
+
+        timeline = result
+        self.lastFetchDate = fetchStart
     }
 }
