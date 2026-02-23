@@ -4,6 +4,7 @@ import SwiftUI
 struct StoryFeedView: View {
     @ObservedObject var feedVM: StoryFeedViewModel
     @ObservedObject var dashboardVM: DashboardViewModel
+    @ObservedObject var authVM: AuthViewModel
 
     var body: some View {
         Group {
@@ -53,11 +54,23 @@ struct StoryFeedView: View {
                     .padding(.horizontal, 32)
 
                 if !feedVM.isAvailable {
-                    Text("Sign in to generate AI-powered stories.")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
+                    Button {
+                        Task { await authVM.signIn() }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "apple.logo")
+                                .font(.body)
+                            Text("Sign in to generate stories")
+                                .font(.subheadline.weight(.medium))
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(DesignTokens.teal.opacity(0.3))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(DesignTokens.teal.opacity(0.5), lineWidth: 1))
+                    }
+                    .disabled(authVM.isLoading)
                 }
 
                 if feedVM.isAtStoryLimit {

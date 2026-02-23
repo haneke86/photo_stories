@@ -80,7 +80,7 @@ private struct MainTabView: View {
                 Label("Explore", systemImage: "globe.europe.africa")
             }
 
-            StoryFeedView(feedVM: feedVM, dashboardVM: dashboardVM)
+            StoryFeedView(feedVM: feedVM, dashboardVM: dashboardVM, authVM: authVM)
                 .tabItem {
                     Label("Stories", systemImage: "book.pages")
                 }

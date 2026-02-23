@@ -49,5 +49,16 @@
 	<string>$(COGNITO_USER_POOL_ID)</string>
 	<key>CognitoClientId</key>
 	<string>$(COGNITO_CLIENT_ID)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>macphoto</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.macphoto.trips</string>
+		</dict>
+	</array>
 </dict>
 </plist>

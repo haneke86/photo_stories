@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -96,7 +96,7 @@
 		43B2757822C1D807FA223AE4 /* ProcessingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessingView.swift; sourceTree = "<group>"; };
 		46A76DFFEA3BD49FA2C06B28 /* PipelineViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PipelineViewModel.swift; sourceTree = "<group>"; };
 		4C334DB43C7C0A6C8B9DC5B4 /* StoryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryCard.swift; sourceTree = "<group>"; };
-		579B9BCE8E56E541C3BF58BE /* MacPhotoTrips.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MacPhotoTrips.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		579B9BCE8E56E541C3BF58BE /* MacPhotoTrips.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacPhotoTrips.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5833A58D66A031AD820BD622 /* StoryFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryFeedView.swift; sourceTree = "<group>"; };
 		593E801E30FD7892145F336A /* InteractiveTripMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractiveTripMapView.swift; sourceTree = "<group>"; };
 		5BDD8DE4A723CC820FBE3624 /* APIKeyConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeyConfig.swift; sourceTree = "<group>"; };
@@ -444,7 +444,6 @@
 			);
 			mainGroup = FD67607EE25BE4B8BF3A0B98;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -542,6 +541,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = MacPhotoTrips/MacPhotoTrips.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = SFN3S2CR7S;
 				INFOPLIST_FILE = MacPhotoTrips/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -617,6 +617,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = MacPhotoTrips/MacPhotoTrips.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = SFN3S2CR7S;
 				INFOPLIST_FILE = MacPhotoTrips/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
