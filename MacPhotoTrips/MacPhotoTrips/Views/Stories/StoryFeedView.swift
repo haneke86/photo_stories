@@ -25,6 +25,7 @@ struct StoryFeedView: View {
             if feedVM.cards.isEmpty && feedVM.state == .idle {
                 await feedVM.loadCachedCards()
             }
+            await feedVM.refreshUsage()
         }
     }
 
@@ -52,11 +53,26 @@ struct StoryFeedView: View {
                     .padding(.horizontal, 32)
 
                 if !feedVM.isAvailable {
-                    Text("No API key configured. Set ANTHROPIC_API_KEY before building.")
+                    Text("Sign in to generate AI-powered stories.")
                         .font(.caption)
                         .foregroundStyle(.orange)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
+                }
+
+                if feedVM.isAtStoryLimit {
+                    Text("Monthly story limit reached")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.orange)
+                    if let info = feedVM.usageInfo {
+                        Text("Resets \(info.resetsAt)")
+                            .font(.caption2)
+                            .foregroundStyle(DesignTokens.textTertiary)
+                    }
+                } else if let remaining = feedVM.remainingStoriesText {
+                    Text(remaining)
+                        .font(.caption)
+                        .foregroundStyle(DesignTokens.textTertiary)
                 }
 
                 Button {
@@ -67,15 +83,18 @@ struct StoryFeedView: View {
                         .foregroundStyle(.white)
                         .padding(.horizontal, 32)
                         .padding(.vertical, 14)
-                        .background(DesignTokens.teal)
+                        .background(feedVM.isAtStoryLimit ? DesignTokens.teal.opacity(0.3) : DesignTokens.teal)
                         .clipShape(Capsule())
                 }
-                .disabled(!feedVM.isAvailable)
+                .disabled(!feedVM.isAvailable || feedVM.isAtStoryLimit)
                 .padding(.top, 8)
 
                 Spacer()
                 Spacer()
             }
+        }
+        .refreshable {
+            await feedVM.regenerate(timeline: dashboardVM.timeline)
         }
     }
 
@@ -136,6 +155,9 @@ struct StoryFeedView: View {
             .scrollTargetLayout()
         }
         .scrollTargetBehavior(.viewAligned)
+        .refreshable {
+            await feedVM.regenerate(timeline: dashboardVM.timeline)
+        }
     }
 
     // MARK: - End Card
