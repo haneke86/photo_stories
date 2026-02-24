@@ -129,8 +129,14 @@ struct StatRingsView: View {
 
     // MARK: - Helpers
 
+    private static let numberFormatter: NumberFormatter = {
+        let nf = NumberFormatter()
+        nf.numberStyle = .decimal
+        return nf
+    }()
+
     /// Returns the next "round" max for ring proportion scaling.
-    func roundedMax(_ value: Int) -> Int {
+    private func roundedMax(_ value: Int) -> Int {
         if value <= 10 { return 10 }
         if value <= 25 { return 25 }
         if value <= 50 { return 50 }
@@ -139,9 +145,7 @@ struct StatRingsView: View {
     }
 
     /// Formats an integer with locale-aware decimal grouping (e.g. 1,234).
-    func formatNumber(_ value: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+    private func formatNumber(_ value: Int) -> String {
+        Self.numberFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 }

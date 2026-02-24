@@ -4,6 +4,7 @@ import SwiftUI
 struct TravelRecordsView: View {
     @ObservedObject var viewModel: DashboardViewModel
     @State private var visibleCards: Set<Int> = []
+    @State private var records: [TravelRecord] = []
 
     var body: some View {
         VStack(spacing: 12) {
@@ -15,7 +16,6 @@ struct TravelRecordsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             // Record cards
-            let records = buildRecords()
             ForEach(Array(records.enumerated()), id: \.offset) { index, record in
                 recordCard(record: record, color: record.accentColor)
                     .opacity(visibleCards.contains(index) ? 1 : 0)
@@ -28,6 +28,11 @@ struct TravelRecordsView: View {
                     .onAppear {
                         visibleCards.insert(index)
                     }
+            }
+        }
+        .onAppear {
+            if records.isEmpty {
+                records = buildRecords()
             }
         }
     }
@@ -166,11 +171,14 @@ struct TravelRecordsView: View {
 
     // MARK: - Helpers
 
-    /// Format an integer with comma grouping (e.g. 12345 → "12,345").
+    private static let numberFormatter: NumberFormatter = {
+        let nf = NumberFormatter()
+        nf.numberStyle = .decimal
+        return nf
+    }()
+
+    /// Format an integer with comma grouping (e.g. 12345 -> "12,345").
     private static func formatNumber(_ value: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.groupingSeparator = ","
-        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+        numberFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 }

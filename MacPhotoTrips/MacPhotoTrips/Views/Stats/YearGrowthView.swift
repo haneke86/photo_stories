@@ -54,11 +54,15 @@ struct YearGrowthView: View {
 
     // MARK: - Chart Section
 
+    @ViewBuilder
     private func chartSection(
         title: String,
         data: [(label: String, value: Int)],
         color: Color
     ) -> some View {
+        if data.isEmpty {
+            EmptyView()
+        } else {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.caption.weight(.semibold))
@@ -87,11 +91,7 @@ struct YearGrowthView: View {
                         for (index, item) in data.enumerated() {
                             let x = data.count > 1 ? CGFloat(index) * stepX : width / 2
                             let y = height - (CGFloat(item.value) / maxVal * height * 0.85)
-                            if index == 0 {
-                                path.addLine(to: CGPoint(x: x, y: y))
-                            } else {
-                                path.addLine(to: CGPoint(x: x, y: y))
-                            }
+                            path.addLine(to: CGPoint(x: x, y: y))
                         }
                         let lastX = data.count > 1 ? CGFloat(data.count - 1) * stepX : width / 2
                         path.addLine(to: CGPoint(x: lastX, y: height))
@@ -171,5 +171,6 @@ struct YearGrowthView: View {
                 }
             }
         }
+        } // else
     }
 }

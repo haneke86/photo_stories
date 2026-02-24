@@ -32,6 +32,7 @@ struct AnimatedCounter: View {
                     .foregroundStyle(color)
             }
         }
+        .accessibilityLabel("\(target)\(suffix)")
         .onAppear {
             guard !hasAppeared else { return }
             hasAppeared = true
@@ -54,17 +55,26 @@ struct AnimatedDecimalCounter: View {
     @State private var current: Double = 0
     @State private var hasAppeared = false
 
-    private var formatter: NumberFormatter {
-        let nf = NumberFormatter()
-        nf.numberStyle = .decimal
-        nf.minimumFractionDigits = decimals
-        nf.maximumFractionDigits = decimals
-        return nf
+    private static var formatterCache: [Int: NumberFormatter] = [:]
+
+    private func formatNumber(_ value: Double) -> String {
+        let nf: NumberFormatter
+        if let cached = Self.formatterCache[decimals] {
+            nf = cached
+        } else {
+            let f = NumberFormatter()
+            f.numberStyle = .decimal
+            f.minimumFractionDigits = decimals
+            f.maximumFractionDigits = decimals
+            Self.formatterCache[decimals] = f
+            nf = f
+        }
+        return nf.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 
     var body: some View {
         HStack(spacing: 2) {
-            Text(formatter.string(from: NSNumber(value: current)) ?? "0")
+            Text(formatNumber(current))
                 .font(font)
                 .monospacedDigit()
                 .foregroundStyle(color)
@@ -76,6 +86,7 @@ struct AnimatedDecimalCounter: View {
                     .foregroundStyle(color)
             }
         }
+        .accessibilityLabel(formatNumber(target) + suffix)
         .onAppear {
             guard !hasAppeared else { return }
             hasAppeared = true

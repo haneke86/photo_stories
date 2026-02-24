@@ -43,7 +43,9 @@ struct CountryLeaderboardView: View {
         .padding(24)
         .glassCard()
         .onAppear {
-            animateBars = true
+            withAnimation {
+                animateBars = true
+            }
         }
     }
 

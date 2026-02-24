@@ -48,7 +48,7 @@ struct InsightsShareButton: View {
 /// 360x640pt card (at 3x = 1080x1920 — Instagram story size).
 /// Never displayed in the UI directly; only used by ImageRenderer.
 private struct InsightsShareCard: View {
-    @ObservedObject var viewModel: DashboardViewModel
+    let viewModel: DashboardViewModel
 
     var body: some View {
         VStack(spacing: 24) {
@@ -211,10 +211,13 @@ private struct InsightsShareCard: View {
 
     // MARK: - Helpers
 
+    private static let numberFormatter: NumberFormatter = {
+        let nf = NumberFormatter()
+        nf.numberStyle = .decimal
+        return nf
+    }()
+
     private func formatNumber(_ value: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.groupingSeparator = ","
-        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+        Self.numberFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 }
