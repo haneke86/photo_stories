@@ -20,6 +20,7 @@ struct ContentView: View {
                 authenticatedContent
             }
         }
+        .preferredColorScheme(.dark)
     }
 
     @ViewBuilder
