@@ -43,6 +43,35 @@ struct SettingsView: View {
                     Text("Account")
                 }
 
+                // MARK: - Usage
+
+                if let usage = settingsVM.usageInfo {
+                    Section {
+                        LabeledContent {
+                            Text("\(usage.stories.used) / \(usage.stories.limit)")
+                                .foregroundStyle(DesignTokens.teal)
+                        } label: {
+                            Label("Stories", systemImage: "book.pages")
+                        }
+
+                        LabeledContent {
+                            Text("\(usage.chats.used) / \(usage.chats.limit)")
+                                .foregroundStyle(DesignTokens.teal)
+                        } label: {
+                            Label("Chat Messages", systemImage: "bubble.left.and.text.bubble.right")
+                        }
+
+                        LabeledContent {
+                            Text(usage.resetsAt)
+                                .foregroundStyle(DesignTokens.textSecondary)
+                        } label: {
+                            Label("Resets", systemImage: "arrow.clockwise")
+                        }
+                    } header: {
+                        Text("Usage")
+                    }
+                }
+
                 // MARK: - Data
 
                 Section {
@@ -81,6 +110,9 @@ struct SettingsView: View {
             .scrollContentBackground(.hidden)
             .tint(DesignTokens.teal)
             .navigationTitle("Settings")
+            .task {
+                await settingsVM.refreshUsage()
+            }
 
             // Deletion overlay
             if settingsVM.isDeleting {

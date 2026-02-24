@@ -5,6 +5,7 @@ import Foundation
 final class SettingsViewModel: ObservableObject {
     @Published var isDeleting = false
     @Published var errorMessage: String?
+    @Published var usageInfo: UsageInfo?
 
     private let provider: BackendProvider
     private let authService: AuthService
@@ -12,6 +13,11 @@ final class SettingsViewModel: ObservableObject {
     init(provider: BackendProvider, authService: AuthService) {
         self.provider = provider
         self.authService = authService
+    }
+
+    /// Fetch current usage quotas from the backend.
+    func refreshUsage() async {
+        usageInfo = try? await provider.fetchUsage()
     }
 
     /// Delete the user's account via the backend, sign out, and optionally clear local data.
