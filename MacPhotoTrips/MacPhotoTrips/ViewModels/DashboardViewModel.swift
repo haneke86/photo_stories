@@ -234,6 +234,99 @@ final class DashboardViewModel: ObservableObject {
             .sorted { $0.year < $1.year }
     }
 
+    // MARK: - Travel Records
+
+    /// Trip with the farthest stop from home base (great-circle distance).
+    var farthestTrip: (trip: Trip, distanceKm: Double, city: String)? {
+        let home = timeline.homeBase
+        var best: (trip: Trip, distanceKm: Double, city: String)?
+
+        for trip in timeline.trips {
+            for stop in trip.stops {
+                let dist = Haversine.distanceKm(
+                    lat1: home.center.lat, lon1: home.center.lon,
+                    lat2: stop.coordinates.lat, lon2: stop.coordinates.lon
+                )
+                if dist > (best?.distanceKm ?? 0) {
+                    best = (trip: trip, distanceKm: dist, city: stop.city)
+                }
+            }
+        }
+        return best
+    }
+
+    /// Trip with the most unique cities visited. Only returned if cityCount > 1.
+    var mostCitiesTrip: (trip: Trip, cityCount: Int)? {
+        guard let trip = timeline.trips.max(by: { $0.cities.count < $1.cities.count }),
+              trip.cities.count > 1 else { return nil }
+        return (trip: trip, cityCount: trip.cities.count)
+    }
+
+    /// Longest gap (in days) between consecutive trips.
+    var longestHomeStretch: (days: Int, afterTrip: String, beforeTrip: String)? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        let sorted = timeline.trips.sorted {
+            (formatter.date(from: $0.departureDate) ?? .distantPast)
+                < (formatter.date(from: $1.departureDate) ?? .distantPast)
+        }
+
+        guard sorted.count >= 2 else { return nil }
+
+        var best: (days: Int, afterTrip: String, beforeTrip: String)?
+
+        for i in 0..<(sorted.count - 1) {
+            guard let returnDate = formatter.date(from: sorted[i].returnDate),
+                  let nextDeparture = formatter.date(from: sorted[i + 1].departureDate) else { continue }
+
+            let gap = Calendar.current.dateComponents([.day], from: returnDate, to: nextDeparture).day ?? 0
+            if gap > (best?.days ?? 0) {
+                let afterLabel = sorted[i].cities.first ?? sorted[i].id
+                let beforeLabel = sorted[i + 1].cities.first ?? sorted[i + 1].id
+                best = (days: gap, afterTrip: afterLabel, beforeTrip: beforeLabel)
+            }
+        }
+        return best
+    }
+
+    /// Calendar month with the most trip departures. Only returned if count > 1.
+    var busiestMonth: (month: String, year: Int, tripCount: Int)? {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        var freq: [String: (month: Int, year: Int, count: Int)] = [:]
+
+        for trip in timeline.trips {
+            guard let date = formatter.date(from: trip.departureDate) else { continue }
+            let cal = Calendar.current
+            let month = cal.component(.month, from: date)
+            let year = cal.component(.year, from: date)
+            let key = "\(year)-\(month)"
+            if let existing = freq[key] {
+                freq[key] = (month: month, year: year, count: existing.count + 1)
+            } else {
+                freq[key] = (month: month, year: year, count: 1)
+            }
+        }
+
+        guard let top = freq.values.max(by: { $0.count < $1.count }),
+              top.count > 1 else { return nil }
+
+        let monthFormatter = DateFormatter()
+        monthFormatter.dateFormat = "MMMM"
+        var comps = DateComponents()
+        comps.month = top.month
+        let monthName = Calendar.current.date(from: comps).map { monthFormatter.string(from: $0) } ?? "Unknown"
+
+        return (month: monthName, year: top.year, tripCount: top.count)
+    }
+
+    /// Trip with the highest photo count.
+    var mostPhotogenicTrip: Trip? {
+        timeline.trips.max(by: { $0.photoCount < $1.photoCount })
+    }
+
     // MARK: - Timeline Bar Data
 
     struct TimelineBlock: Identifiable {
