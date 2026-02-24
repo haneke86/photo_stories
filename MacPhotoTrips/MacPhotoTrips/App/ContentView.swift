@@ -30,6 +30,8 @@ struct ContentView: View {
                 PermissionView(onRequest: pipeline.requestPermission)
             case .denied:
                 PermissionDeniedView()
+            case .limitedNoPhotos:
+                LimitedAccessView()
             case .processing:
                 ProcessingView(viewModel: pipeline)
             case .ready:
@@ -122,25 +124,99 @@ private struct MainTabView: View {
 
 // MARK: - Helper Views
 
+private struct LimitedAccessView: View {
+    var body: some View {
+        ZStack {
+            AuroraBackground()
+
+            VStack(spacing: 24) {
+                Spacer()
+
+                Image(systemName: "photo.on.rectangle.angled")
+                    .font(.system(size: 64))
+                    .foregroundStyle(DesignTokens.gradient)
+
+                VStack(spacing: 8) {
+                    Text("No Geotagged Photos Selected")
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(.white)
+                    Text("You granted limited access, but none of the selected photos have location data. To build your travel timeline, please allow full access or select photos taken during your trips.")
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(DesignTokens.textSecondary)
+                        .padding(.horizontal, 32)
+                }
+
+                VStack(spacing: 12) {
+                    Button {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    } label: {
+                        Text("Open Settings")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(DesignTokens.teal)
+                            .clipShape(Capsule())
+                    }
+                    .padding(.horizontal, 32)
+
+                    Text("Change photo access to \"Full Access\" or select geotagged photos.")
+                        .font(.caption)
+                        .foregroundStyle(DesignTokens.textTertiary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                }
+
+                Spacer()
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+}
+
 private struct PermissionDeniedView: View {
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "photo.badge.exclamationmark")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
-            Text("Photo Access Required")
-                .font(.title2.weight(.semibold))
-            Text("Open Settings and grant photo library access to see your travel timeline.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-            Button("Open Settings") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
+        ZStack {
+            AuroraBackground()
+
+            VStack(spacing: 24) {
+                Spacer()
+
+                Image(systemName: "photo.badge.exclamationmark")
+                    .font(.system(size: 64))
+                    .foregroundStyle(DesignTokens.gradient)
+
+                VStack(spacing: 8) {
+                    Text("Photo Access Required")
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(.white)
+                    Text("MacPhotoTrips needs photo library access to discover your trips. Please grant access in Settings.")
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(DesignTokens.textSecondary)
+                        .padding(.horizontal, 32)
                 }
+
+                Button {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Text("Open Settings")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(DesignTokens.teal)
+                        .clipShape(Capsule())
+                }
+                .padding(.horizontal, 32)
+
+                Spacer()
             }
-            .buttonStyle(.borderedProminent)
         }
-        .padding()
+        .preferredColorScheme(.dark)
     }
 }
 
@@ -149,18 +225,40 @@ private struct ErrorView: View {
     let onRetry: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 48))
-                .foregroundStyle(.orange)
-            Text("Something went wrong")
-                .font(.title2.weight(.semibold))
-            Text(message)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-            Button("Try Again", action: onRetry)
-                .buttonStyle(.borderedProminent)
+        ZStack {
+            AuroraBackground()
+
+            VStack(spacing: 24) {
+                Spacer()
+
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 64))
+                    .foregroundStyle(.orange)
+
+                VStack(spacing: 8) {
+                    Text("Something Went Wrong")
+                        .font(.title2.weight(.bold))
+                        .foregroundStyle(.white)
+                    Text(message)
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(DesignTokens.textSecondary)
+                        .padding(.horizontal, 32)
+                }
+
+                Button(action: onRetry) {
+                    Text("Try Again")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(DesignTokens.teal)
+                        .clipShape(Capsule())
+                }
+                .padding(.horizontal, 32)
+
+                Spacer()
+            }
         }
-        .padding()
+        .preferredColorScheme(.dark)
     }
 }

@@ -68,18 +68,18 @@ struct OnboardingImageBackground: View {
                         .scaledToFill()
                         .frame(width: geo.size.width, height: geo.size.height)
                         .clipped()
-                        .opacity(0.4)
+                        .opacity(0.65)
 
-                    // Radial gradient: dark center for text, lighter edges for image detail
+                    // Radial gradient: softly darken center for text legibility
                     RadialGradient(
                         colors: [
-                            DesignTokens.bg.opacity(0.85),
-                            DesignTokens.bg.opacity(0.4),
-                            DesignTokens.bg.opacity(0.6),
+                            DesignTokens.bg.opacity(0.7),
+                            DesignTokens.bg.opacity(0.2),
+                            DesignTokens.bg.opacity(0.35),
                         ],
                         center: .center,
-                        startRadius: 20,
-                        endRadius: UIScreen.main.bounds.height * 0.5
+                        startRadius: 40,
+                        endRadius: UIScreen.main.bounds.height * 0.55
                     )
 
                     // Top & bottom edge fade to base color

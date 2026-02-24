@@ -10,6 +10,7 @@ final class PipelineViewModel: ObservableObject {
     enum State {
         case needsPermission
         case denied
+        case limitedNoPhotos  // User granted limited access but no geotagged photos available
         case processing
         case ready
         case error(String)
@@ -97,7 +98,12 @@ final class PipelineViewModel: ObservableObject {
                 let records = await photoService.fetchGeotaggedPhotos()
 
                 guard !records.isEmpty else {
-                    state = .error("No geotagged photos found in the last 6 years.")
+                    // If limited access, guide user to grant full access or select geotagged photos
+                    if photoService.currentStatus() == .limited {
+                        state = .limitedNoPhotos
+                    } else {
+                        state = .error("No geotagged photos found in the last 6 years.")
+                    }
                     return
                 }
                 progressDetail = "\(records.count) geotagged photos found"

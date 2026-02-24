@@ -122,7 +122,7 @@ final class AuthService: ObservableObject {
                     continuation.resume(throwing: AuthError.invalidResponse)
                 }
             }
-            authSession?.prefersEphemeralWebBrowserSession = false
+            authSession?.prefersEphemeralWebBrowserSession = true
             authSession?.presentationContextProvider = sessionCoordinator
             authSession?.start()
         }
