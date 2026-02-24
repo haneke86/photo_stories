@@ -1,6 +1,7 @@
 import SwiftUI
 import Photos
 import SwiftData
+import UIKit
 
 /// Orchestrates the full pipeline: permission → fetch → geocode → detect → build.
 /// Publishes progress state for the UI.
@@ -31,6 +32,9 @@ final class PipelineViewModel: ObservableObject {
     @Published private(set) var timeline: Timeline?
     @Published var isRefining = false
 
+    /// Estimated seconds remaining for geocoding, based on progress rate.
+    @Published var estimatedSecondsRemaining: Int?
+
     private let photoService = PhotoLibraryService()
     private let geocodingService = GeocodingService()
 
@@ -47,6 +51,12 @@ final class PipelineViewModel: ObservableObject {
 
     /// SwiftData cache, created once and shared between coarse and fine passes.
     private var cache: PhotoCacheStore?
+
+    /// Background task identifier to extend processing when app is backgrounded.
+    private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
+
+    /// Timestamp when geocoding started, for ETA calculation.
+    private var geocodingStartTime: Date?
 
     // MARK: - Permission
 
@@ -87,6 +97,9 @@ final class PipelineViewModel: ObservableObject {
     func start() {
         state = .processing
         progress = 0
+        estimatedSecondsRemaining = nil
+
+        beginProcessingSession()
 
         Task {
             do {
@@ -98,6 +111,7 @@ final class PipelineViewModel: ObservableObject {
                 let records = await photoService.fetchGeotaggedPhotos()
 
                 guard !records.isEmpty else {
+                    endProcessingSession()
                     // If limited access, guide user to grant full access or select geotagged photos
                     if photoService.currentStatus() == .limited {
                         state = .limitedNoPhotos
@@ -116,21 +130,28 @@ final class PipelineViewModel: ObservableObject {
 
                 // Step 2: Coarse geocode (0.05° grid — ~5x fewer clusters, ~2 min)
                 currentStep = .geocoding
+                geocodingStartTime = Date()
 
                 let geocoded = await geocodingService.geocodePhotos(
                     records, cache: cache,
                     resolution: GeocodingService.coarseResolution
                 ) { [weak self] completed, total in
                     Task { @MainActor in
-                        self?.progress = Double(completed) / Double(max(total, 1))
+                        let fraction = Double(completed) / Double(max(total, 1))
+                        self?.progress = fraction
                         self?.progressDetail = "Geocoding location \(completed) of \(total)..."
+                        self?.updateETA(completed: completed, total: total)
                     }
                 }
+
+                geocodingStartTime = nil
+                estimatedSecondsRemaining = nil
 
                 // Filter out records with no usable city
                 let usable = geocoded.filter { $0.city != "Unknown" && !$0.city.isEmpty }
 
                 guard !usable.isEmpty else {
+                    endProcessingSession()
                     state = .error("Could not geocode any photo locations.")
                     return
                 }
@@ -147,6 +168,8 @@ final class PipelineViewModel: ObservableObject {
                 progressDetail = "Saving timeline..."
                 try TimelineStore.save(result)
 
+                endProcessingSession()
+
                 timeline = result
                 state = .ready
                 self.lastFetchDate = fetchStart
@@ -155,9 +178,47 @@ final class PipelineViewModel: ObservableObject {
                 refineGeocode()
 
             } catch {
+                endProcessingSession()
                 state = .error(error.localizedDescription)
             }
         }
+    }
+
+    // MARK: - Processing Session (idle timer + background task)
+
+    /// Keep screen awake and register a background task for extended processing.
+    private func beginProcessingSession() {
+        UIApplication.shared.isIdleTimerDisabled = true
+
+        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "geocoding") { [weak self] in
+            // System is about to suspend — end the task gracefully.
+            // SwiftData cache preserves progress; next launch resumes fast.
+            self?.endBackgroundTask()
+        }
+    }
+
+    /// Re-enable screen lock and end the background task.
+    private func endProcessingSession() {
+        UIApplication.shared.isIdleTimerDisabled = false
+        endBackgroundTask()
+    }
+
+    private func endBackgroundTask() {
+        guard backgroundTaskID != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(backgroundTaskID)
+        backgroundTaskID = .invalid
+    }
+
+    /// Estimate remaining time based on elapsed time and completion fraction.
+    private func updateETA(completed: Int, total: Int) {
+        guard completed > 0, let startTime = geocodingStartTime else {
+            estimatedSecondsRemaining = nil
+            return
+        }
+        let elapsed = Date().timeIntervalSince(startTime)
+        let rate = elapsed / Double(completed) // seconds per cluster
+        let remaining = rate * Double(total - completed)
+        estimatedSecondsRemaining = max(1, Int(remaining))
     }
 
     // MARK: - Background Refinement
@@ -193,6 +254,7 @@ final class PipelineViewModel: ObservableObject {
 
     /// Re-scan for new photos (clears cache and re-runs pipeline).
     func refresh() {
+        endProcessingSession()
         try? TimelineStore.delete()
         timeline = nil
         photoRecords = []
