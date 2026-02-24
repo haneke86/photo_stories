@@ -1,0 +1,36 @@
+name: MacPhotoTrips
+options:
+  bundleIdPrefix: com.macphoto
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    TARGETED_DEVICE_FAMILY: "1,2"
+
+configFiles:
+  Debug: Secrets.xcconfig
+  Release: Secrets.xcconfig
+
+targets:
+  MacPhotoTrips:
+    type: application
+    platform: iOS
+    sources:
+      - path: MacPhotoTrips
+        excludes:
+          - Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.macphoto.trips
+        INFOPLIST_FILE: MacPhotoTrips/Info.plist
+    entitlements:
+      path: MacPhotoTrips/MacPhotoTrips.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.personal-information.photos-library: true
+        com.apple.developer.applesignin:
+          - Default

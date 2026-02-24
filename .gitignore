@@ -7,5 +7,20 @@ __pycache__/
 # Output (generated files)
 output/
 
+# LLM response cache
+.llm_cache/
+
+# Secrets
+.env
+
+# Node / CDK
+node_modules/
+cdk.out/
+
+# Apple private keys
+*.p8
+
 # macOS
 .DS_Store
+MacPhotoTrips/Secrets.xcconfig
+xcuserdata/
