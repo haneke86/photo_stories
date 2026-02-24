@@ -5,6 +5,15 @@ import MapKit
 @MainActor
 final class DashboardViewModel: ObservableObject {
 
+    // MARK: - Shared Formatters
+
+    private static let isoDateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f
+    }()
+
     var timeline: Timeline
 
     init(timeline: Timeline) {
@@ -263,28 +272,27 @@ final class DashboardViewModel: ObservableObject {
     }
 
     /// Longest gap (in days) between consecutive trips.
-    var longestHomeStretch: (days: Int, afterTrip: String, beforeTrip: String)? {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
+    var longestHomeStretch: (days: Int, fromTrip: String, toTrip: String)? {
+        let fmt = Self.isoDateFormatter
 
         let sorted = timeline.trips.sorted {
-            (formatter.date(from: $0.departureDate) ?? .distantPast)
-                < (formatter.date(from: $1.departureDate) ?? .distantPast)
+            (fmt.date(from: $0.departureDate) ?? .distantPast)
+                < (fmt.date(from: $1.departureDate) ?? .distantPast)
         }
 
         guard sorted.count >= 2 else { return nil }
 
-        var best: (days: Int, afterTrip: String, beforeTrip: String)?
+        var best: (days: Int, fromTrip: String, toTrip: String)?
 
         for i in 0..<(sorted.count - 1) {
-            guard let returnDate = formatter.date(from: sorted[i].returnDate),
-                  let nextDeparture = formatter.date(from: sorted[i + 1].departureDate) else { continue }
+            guard let returnDate = fmt.date(from: sorted[i].returnDate),
+                  let nextDeparture = fmt.date(from: sorted[i + 1].departureDate) else { continue }
 
             let gap = Calendar.current.dateComponents([.day], from: returnDate, to: nextDeparture).day ?? 0
             if gap > (best?.days ?? 0) {
-                let afterLabel = sorted[i].cities.first ?? sorted[i].id
-                let beforeLabel = sorted[i + 1].cities.first ?? sorted[i + 1].id
-                best = (days: gap, afterTrip: afterLabel, beforeTrip: beforeLabel)
+                let fromLabel = sorted[i].cities.first ?? sorted[i].id
+                let toLabel = sorted[i + 1].cities.first ?? sorted[i + 1].id
+                best = (days: gap, fromTrip: fromLabel, toTrip: toLabel)
             }
         }
         return best
@@ -292,13 +300,12 @@ final class DashboardViewModel: ObservableObject {
 
     /// Calendar month with the most trip departures. Only returned if count > 1.
     var busiestMonth: (month: String, year: Int, tripCount: Int)? {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
+        let fmt = Self.isoDateFormatter
 
         var freq: [String: (month: Int, year: Int, count: Int)] = [:]
 
         for trip in timeline.trips {
-            guard let date = formatter.date(from: trip.departureDate) else { continue }
+            guard let date = fmt.date(from: trip.departureDate) else { continue }
             let cal = Calendar.current
             let month = cal.component(.month, from: date)
             let year = cal.component(.year, from: date)
@@ -313,11 +320,7 @@ final class DashboardViewModel: ObservableObject {
         guard let top = freq.values.max(by: { $0.count < $1.count }),
               top.count > 1 else { return nil }
 
-        let monthFormatter = DateFormatter()
-        monthFormatter.dateFormat = "MMMM"
-        var comps = DateComponents()
-        comps.month = top.month
-        let monthName = Calendar.current.date(from: comps).map { monthFormatter.string(from: $0) } ?? "Unknown"
+        let monthName = Calendar.current.monthSymbols[top.month - 1]
 
         return (month: monthName, year: top.year, tripCount: top.count)
     }
